@@ -16,9 +16,9 @@ from .__init__ import BydEnergyDataUpdateCoordinator
 _LOGGER = logging.getLogger(__name__)
 
 NUMBER_DEFINITIONS = {
-    "minGrEle": ("Feed-in Stop SOC", NumberDeviceClass.BATTERY, PERCENTAGE, 10, 100, 1, "mdi:battery-minus"),
-    "minSoc": ("Battery Discharge Stop Floor", NumberDeviceClass.BATTERY, PERCENTAGE, 10, 100, 1, "mdi:battery-sync"),
-    "maxSoc": ("Battery Charge Stop Ceiling", NumberDeviceClass.BATTERY, PERCENTAGE, 10, 100, 1, "mdi:battery-plus"),
+    "minGrEle": ("Feed-in Stop SOC", NumberDeviceClass.BATTERY, PERCENTAGE, 10, 100, 5, "mdi:battery-minus"),
+    "minSoc": ("Battery Discharge Stop Floor", NumberDeviceClass.BATTERY, PERCENTAGE, 10, 100, 5, "mdi:battery-sync"),
+    "maxSoc": ("Battery Charge Stop Ceiling", NumberDeviceClass.BATTERY, PERCENTAGE, 10, 100, 5, "mdi:battery-plus"),
     "pv1MaxPower": ("PV1 String Peak Power Limit", NumberDeviceClass.POWER, UnitOfPower.WATT, 0, 10000, 10, "mdi:solar-power"),
     "pv2MaxPower": ("PV2 String Peak Power Limit", NumberDeviceClass.POWER, UnitOfPower.WATT, 0, 10000, 10, "mdi:solar-power"),
 }
