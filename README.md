@@ -9,7 +9,7 @@
 >
 > This integration is entirely reverse-engineered from official BYD Energy mobile application bundles. Official API documentation does not exist.
 >
-> High-risk write controls—specifically **"Power On/Off"** (`remoteOnOff` / Inverter Remote Power) and **"Battery Enable"** (`EPSEnable` / Battery Storage System Enabled)—**have not been tested on physical hardware**. Activating these controls carries a risk of accidental home blackouts, battery tower offline drops, or grid disconnection.
+> High-risk write controls - specifically **"Power On/Off"** (`remoteOnOff` / Inverter Remote Power) and **"Battery Enable"** (`EPSEnable` / Battery Storage System Enabled - **have not been tested on physical hardware**. Activating these controls carries a risk of accidental home blackouts, battery tower offline drops, or grid disconnection.
 >
 > To protect your system, these controls are **locked by default** in the integration's backend. Enabling them requires a conscious action in the integration's Configure settings. Use them at your own risk. The authors accept no responsibility or liability for any hardware damage, electrical blackouts, or financial loss.
 
