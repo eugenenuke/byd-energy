@@ -116,4 +116,7 @@ SENSOR_DEFINITIONS = {
     "grid_regulation": ("Grid Standard Regulation", None, None, None, "mdi:handshake"),
     "bms_current_version": ("BMS Firmware Version", None, None, None, "mdi:firmware"),
     "bms_latest_version": ("BMS Latest Available Firmware", None, None, None, "mdi:firmware"),
+    "pcs_latest_version": ("Inverter Latest Available Firmware", None, None, None, "mdi:firmware"),
+    "f527_current_version": ("WiFi Stick Firmware Version", None, None, None, "mdi:wifi-cog"),
+    "f527_latest_version": ("WiFi Stick Latest Available Firmware", None, None, None, "mdi:wifi-cog"),
 }

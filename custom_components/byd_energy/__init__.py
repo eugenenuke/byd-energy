@@ -108,6 +108,10 @@ class BydEnergyDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 "bms_type": None,
                 "bms_current_version": None,
                 "bms_latest_version": None,
+                "pcs_current_version": None,
+                "pcs_latest_version": None,
+                "f527_current_version": None,
+                "f527_latest_version": None,
             }
 
         # 1. Fast Loop (always executed: power flows, fast SOC, online connectivity status)
@@ -139,7 +143,11 @@ class BydEnergyDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 "grid_settings": self.client.get_device_grid_settings(self.product_type, self.pid),
                 "bms_type": self.client.get_bms_type(self.pid),
                 "bms_current_version": self.client.get_current_upgrade_version("bms", self.pid),
-                "bms_latest_version": self.client.get_bms_latest_version(self.product_type),
+                "bms_latest_version": self.client.get_latest_version(self.product_type, "bms"),
+                "pcs_current_version": self.client.get_current_upgrade_version("pcs", self.pid),
+                "pcs_latest_version": self.client.get_latest_version(self.product_type, "pcs"),
+                "f527_current_version": self.client.get_current_upgrade_version("f527", self.pid),
+                "f527_latest_version": self.client.get_latest_version(self.product_type, "f527"),
             })
 
         try:
@@ -218,6 +226,14 @@ class BydEnergyDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
                     data["bms_current_version"] = task_results["bms_current_version"]
                 if "bms_latest_version" in task_results and not isinstance(task_results["bms_latest_version"], Exception):
                     data["bms_latest_version"] = task_results["bms_latest_version"]
+                if "pcs_current_version" in task_results and not isinstance(task_results["pcs_current_version"], Exception):
+                    data["pcs_current_version"] = task_results["pcs_current_version"]
+                if "pcs_latest_version" in task_results and not isinstance(task_results["pcs_latest_version"], Exception):
+                    data["pcs_latest_version"] = task_results["pcs_latest_version"]
+                if "f527_current_version" in task_results and not isinstance(task_results["f527_current_version"], Exception):
+                    data["f527_current_version"] = task_results["f527_current_version"]
+                if "f527_latest_version" in task_results and not isinstance(task_results["f527_latest_version"], Exception):
+                    data["f527_latest_version"] = task_results["f527_latest_version"]
                 self._last_slow_fetch = now
 
             return data

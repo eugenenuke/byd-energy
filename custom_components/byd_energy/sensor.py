@@ -74,7 +74,7 @@ class BydEnergySensor(CoordinatorEntity[BydEnergyDataUpdateCoordinator], SensorE
             val = data.get("base_settings", {}).get("qaTime")
         elif self._key == "grid_regulation":
             val = data.get("grid_settings", {}).get("Standard")
-        elif self._key in ["bms_current_version", "bms_latest_version"]:
+        elif self._key in ["bms_current_version", "bms_latest_version", "pcs_latest_version", "f527_current_version", "f527_latest_version"]:
             val = data.get(self._key)
 
         if val is None:
@@ -110,7 +110,7 @@ class BydEnergySensor(CoordinatorEntity[BydEnergyDataUpdateCoordinator], SensorE
             "acVol", "adcVol", "acCur", "adcCur", "paraNum", "packNum",
             "pcsCsta", "intV", "extV", "curr", "maxSV", "minSV", "maxSTem", "minST",
             "avgTmp", "loopNum", "bmsDailyCharge", "bmsDailyDisCharge", "bmsTotalCharge",
-            "bmsTotalDisCharge"
+            "bmsTotalDisCharge", "bms_current_version", "bms_latest_version"
         ]
         if self._key in battery_keys:
             bms_code = str(sensors.get("bmsType", "4"))
