@@ -4,6 +4,13 @@ All notable changes to the BYD Energy Home Assistant custom component will be do
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1-beta] - 2026-05-18
+
+### Added
+- **Safety Toggle Lock**: Implemented a dual-layer safety lock protecting high-risk, untested write controls ("Inverter Power On/Off" and "Battery Enable") from accidental triggers by default.
+- **Options Flow Safety Checkbox**: Added a secure "Enable Untested Advanced Write Controls" checkbox to the integration options config flow, allowing power users to explicitly release the safety lock.
+- **UI Error Toast Navigation**: Customized the Home Assistant error popup notification message to output a detailed warning with exact UI settings navigation directions when locked controls are clicked.
+
 ## [0.3.0-beta] - 2026-05-18
 
 ### Added
