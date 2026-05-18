@@ -126,6 +126,15 @@ class BydEnergyDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
         self._last_medium_fetch = 0.0
         self._last_slow_fetch = 0.0
 
+    def force_medium_refresh_soon(self) -> None:
+        """Schedule a forced Medium Loop refresh after a 3-second safety delay to ensure cloud-to-hardware sync."""
+        async def _deferred_refresh() -> None:
+            await asyncio.sleep(3.0)
+            self._last_medium_fetch = 0.0  # Bypass the 5-minute time gate
+            await self.async_request_refresh()
+
+        self.hass.async_create_task(_deferred_refresh())
+
     async def _async_update_data(self) -> Dict[str, Any]:
         """Fetch consolidated data from BYD cloud using multi-rate loops."""
         now = time.time()

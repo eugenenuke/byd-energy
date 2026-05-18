@@ -66,6 +66,7 @@ class BydEnergySwitch(CoordinatorEntity[BydEnergyDataUpdateCoordinator], SwitchE
             if self.coordinator.data and "eeprom_settings" in self.coordinator.data:
                 self.coordinator.data["eeprom_settings"][self._key] = "1"
             self.async_write_ha_state()
+            self.coordinator.force_medium_refresh_soon()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the switch off."""
@@ -74,6 +75,7 @@ class BydEnergySwitch(CoordinatorEntity[BydEnergyDataUpdateCoordinator], SwitchE
             if self.coordinator.data and "eeprom_settings" in self.coordinator.data:
                 self.coordinator.data["eeprom_settings"][self._key] = "0"
             self.async_write_ha_state()
+            self.coordinator.force_medium_refresh_soon()
 
     @property
     def device_info(self) -> DeviceInfo:

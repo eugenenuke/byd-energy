@@ -77,6 +77,7 @@ class BydEnergyText(CoordinatorEntity[BydEnergyDataUpdateCoordinator], TextEntit
             if self.coordinator.data and "eeprom_settings" in self.coordinator.data:
                 self.coordinator.data["eeprom_settings"][self._key] = api_val
             self.async_write_ha_state()
+            self.coordinator.force_medium_refresh_soon()
 
     @property
     def device_info(self) -> DeviceInfo:

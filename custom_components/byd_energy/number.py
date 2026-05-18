@@ -151,6 +151,7 @@ class BydEnergyNumber(CoordinatorEntity[BydEnergyDataUpdateCoordinator], NumberE
 
         if success:
             self.async_write_ha_state()
+            self.coordinator.force_medium_refresh_soon()
 
     @property
     def device_info(self) -> DeviceInfo:
