@@ -1,0 +1,9 @@
+# Ignore everything by default
+*
+
+# Do not ignore the .gitignore file itself
+!.gitignore
+
+# Allow custom_components folder and all its contents recursively
+!custom_components/
+!custom_components/**
