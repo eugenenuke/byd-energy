@@ -7,3 +7,7 @@
 # Allow custom_components folder and all its contents recursively
 !custom_components/
 !custom_components/**
+
+# But ignore cache files under custom_components
+**/__pycache__/
+**/*.pyc
