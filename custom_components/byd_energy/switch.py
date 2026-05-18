@@ -65,7 +65,10 @@ class BydEnergySwitch(CoordinatorEntity[BydEnergyDataUpdateCoordinator], SwitchE
         if self._key in ["remoteOnOff", "EPSEnable"]:
             if not self.coordinator._entry.options.get(CONF_ENABLE_ADVANCED_CONTROLS, False):
                 _LOGGER.warning("Attempted to toggle advanced control %s while safety lock is active.", self._key)
-                raise HomeAssistantError("Advanced controls are locked. Enable them in the integration options flow first.")
+                raise HomeAssistantError(
+                    "Untested advanced write control is locked for safety. To enable, go to: "
+                    "Settings -> Devices & Services -> BYD Energy -> Configure, check the unlock safety box, and submit."
+                )
 
         success = await self.coordinator.client.update_device_setting(self.coordinator.pid, self._key, 1)
         if success:
@@ -79,7 +82,10 @@ class BydEnergySwitch(CoordinatorEntity[BydEnergyDataUpdateCoordinator], SwitchE
         if self._key in ["remoteOnOff", "EPSEnable"]:
             if not self.coordinator._entry.options.get(CONF_ENABLE_ADVANCED_CONTROLS, False):
                 _LOGGER.warning("Attempted to toggle advanced control %s while safety lock is active.", self._key)
-                raise HomeAssistantError("Advanced controls are locked. Enable them in the integration options flow first.")
+                raise HomeAssistantError(
+                    "Untested advanced write control is locked for safety. To enable, go to: "
+                    "Settings -> Devices & Services -> BYD Energy -> Configure, check the unlock safety box, and submit."
+                )
 
         success = await self.coordinator.client.update_device_setting(self.coordinator.pid, self._key, 0)
         if success:
