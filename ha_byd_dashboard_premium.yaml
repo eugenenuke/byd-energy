@@ -1,0 +1,122 @@
+# Home Assistant Dashboard - BYD Premium Glassmorphic Edition
+# Required HACS Frontend Cards: card-mod, apexcharts-card, power-flow-card-plus
+
+title: BYD Energy Premium
+views:
+  - title: Real-Time State
+    path: premium_overview
+    icon: mdi:view-dashboard
+    cards:
+      # Current Battery State Glance Card with customized Glassmorphic shadow glows using card-mod
+      - type: glance
+        title: Storage System Status
+        show_state: true
+        entities:
+          - entity: sensor.battery_state_of_charge
+            name: Charge Level
+            icon: mdi:battery-high
+          - entity: sensor.battery_state_of_health
+            name: Tower Health
+            icon: mdi:heart-pulse
+          - entity: sensor.battery_cycle_count
+            name: Life Cycles
+            icon: mdi:sync
+        card_mod:
+          style: |
+            ha-card {
+              background: rgba(10, 25, 47, 0.75) !important;
+              backdrop-filter: blur(12px) webkit-backdrop-filter(12px);
+              border: 1px solid rgba(0, 255, 180, 0.2) !important;
+              box-shadow: 0 8px 32px 0 rgba(0, 255, 180, 0.1);
+              border-radius: 20px;
+              color: #ffffff;
+            }
+
+      # Premium Live Moving Dot Flow Card
+      - type: custom:power-flow-card-plus
+        title: Live Active Flows (15s poll)
+        min_flow_rate: 0.8
+        max_flow_rate: 3.5
+        entities:
+          solar:
+            entity: sensor.total_pv_power
+            name: Solar Strings
+            color: "#ff9900"
+          home:
+            entity: sensor.household_load_power
+            name: Home Load
+            color: "#00bfff"
+          battery:
+            entity: sensor.battery_active_power
+            state_of_charge: sensor.battery_state_of_charge
+            name: Battery Tower
+            color: "#00ff7f"
+          grid:
+            entity: sensor.grid_meter_power
+            name: Electric Grid
+            invert_state: true
+            color: "#ff1493"
+        card_mod:
+          style: |
+            ha-card {
+              background: rgba(10, 25, 47, 0.7) !important;
+              backdrop-filter: blur(15px);
+              border: 1px solid rgba(255, 255, 255, 0.1) !important;
+              border-radius: 24px;
+            }
+
+      # Dynamic Comparative Real-time Graph using custom:apexcharts-card
+      - type: custom:apexcharts-card
+        header:
+          show: true
+          title: Daily Power Convergence Chart
+          show_states: true
+          colorize_states: true
+        graph_span: 24h
+        span:
+          end: day
+        all_series_config:
+          stroke_width: 2
+          curve: smooth
+          type: area
+          opacity: 0.2
+        series:
+          - entity: sensor.total_pv_power
+            name: Solar Yield
+            color: "#ffaa00"
+          - entity: sensor.household_load_power
+            name: Load Consumption
+            color: "#00ccff"
+          - entity: sensor.battery_active_power
+            name: Battery Active Draw
+            color: "#00ff88"
+            transform: "return x < 0 ? -x : 0;"  # Show battery discharging positive on load curve
+        card_mod:
+          style: |
+            ha-card {
+              background: rgba(10, 25, 47, 0.75) !important;
+              backdrop-filter: blur(12px);
+              border: 1px solid rgba(255, 255, 255, 0.15) !important;
+              border-radius: 20px;
+            }
+
+      # Derived Smart Metrics (Home Assistant Template Calculations)
+      - type: entities
+        title: Advanced System Intelligence
+        show_header_toggle: false
+        entities:
+          # Real-time solar string yield efficiency percentage compared to configured limits
+          - entity: sensor.solar_clipping_alert
+            name: Solar Conversion Limits
+          # Dynamic Estimated Runtime Template
+          - entity: sensor.battery_remaining_capacity
+            name: Reserve Pack Energy
+            secondary_info: last-changed
+        card_mod:
+          style: |
+            ha-card {
+              background: rgba(10, 25, 47, 0.8) !important;
+              backdrop-filter: blur(10px);
+              border: 1px solid rgba(255, 255, 255, 0.1) !important;
+              border-radius: 20px;
+            }

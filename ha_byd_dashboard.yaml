@@ -1,0 +1,401 @@
+# Home Assistant Dashboard - BYD Energy System Dashboard
+# Save this as a new Lovelace Dashboard YAML representation in your HA configuration.
+
+title: BYD Energy Portal
+views:
+  # ==========================================
+  # TAB 1: Live Overview & Flows (Overview Tab)
+  # ==========================================
+  - title: Overview
+    path: overview
+    icon: mdi:home-lightning-bolt
+    cards:
+      # Live Flow moving dot representation using the popular custom 'power-flow-card-plus' (HACS)
+      - type: custom:power-flow-card-plus
+        title: Live Telemetry Flow (15s Poll)
+        min_flow_rate: 0.75
+        max_flow_rate: 4.0
+        watt_threshold: 1000
+        entities:
+          # PV String input
+          solar:
+            entity: sensor.total_pv_power
+            display_zero: true
+            name: Solar Panels
+            icon: mdi:solar-panel-large
+          # Home Loads
+          home:
+            entity: sensor.household_load_power
+            name: Household Load
+            icon: mdi:home-lightning-bolt
+          # Grid / Smart Meter 
+          grid:
+            entity: sensor.grid_meter_power
+            name: Grid Meter
+            display_zero: true
+            invert_state: true  # Negative indicates grid feed-in
+          # Battery Pack
+          battery:
+            entity: sensor.battery_active_power
+            state_of_charge: sensor.battery_state_of_charge
+            name: Battery storage
+            display_zero: true
+
+      # Daily Energy Summaries
+      - type: grid
+        columns: 2
+        square: false
+        cards:
+          - type: entity
+            entity: sensor.daily_pv_generation
+            name: Today's Solar Generation
+            icon: mdi:solar-power
+          - type: entity
+            entity: sensor.daily_household_consumption
+            name: Today's Load Consumption
+            icon: mdi:home-lightning-bolt
+          - type: entity
+            entity: sensor.daily_grid_import
+            name: Today's Grid Purchase
+            icon: mdi:transmission-tower-import
+          - type: entity
+            entity: sensor.daily_grid_export
+            name: Today's Grid Feed-in
+            icon: mdi:transmission-tower-export
+
+  # ==========================================
+  # TAB 2: Battery BMS Diagnostics (Details Tab)
+  # ==========================================
+  - title: Battery Storage
+    path: battery
+    icon: mdi:battery-charging
+    cards:
+      # High level gauges
+      - type: grid
+        columns: 2
+        square: false
+        cards:
+          - type: gauge
+            entity: sensor.battery_state_of_charge
+            name: Battery SOC
+            min: 0
+            max: 100
+            severity:
+              green: 20
+              yellow: 10
+              red: 0
+          - type: gauge
+            entity: sensor.battery_state_of_health
+            name: Battery SOH (Health)
+            min: 0
+            max: 100
+            severity:
+              green: 85
+              yellow: 70
+              red: 0
+
+      # Basic Information (replicates first block in app)
+      - type: entities
+        title: Basic Information
+        show_header_toggle: false
+        entities:
+          - entity: sensor.battery_tower_quantity
+            name: Tower Quantity
+          - entity: sensor.battery_design_capacity
+            name: Installed Capacity
+          - entity: sensor.battery_full_capacity
+            name: Full Capacity
+          - entity: sensor.pcs_connection_status
+            name: Inverter Communication State
+
+      # Battery Information (replicates second block in app)
+      - type: entities
+        title: Battery Information
+        show_header_toggle: false
+        entities:
+          - entity: sensor.battery_remaining_capacity
+            name: Remaining Capacity
+          - entity: sensor.battery_state_of_charge
+            name: System SOC
+          - entity: sensor.battery_state_of_health
+            name: System SOH
+          - entity: sensor.battery_cycle_count
+            name: Battery Life Cycle Count
+            icon: mdi:sync
+
+      # Voltage details (replicates third block in app)
+      - type: entities
+        title: Voltage
+        show_header_toggle: false
+        entities:
+          - entity: sensor.battery_system_voltage
+            name: System Voltage
+          - entity: sensor.allowable_charge_voltage
+            name: Allowed Charging Voltage
+          - entity: sensor.allowable_discharge_voltage
+            name: Allowed Discharging Voltage
+
+      # Current details (replicates fourth block in app)
+      - type: entities
+        title: Current
+        show_header_toggle: false
+        entities:
+          - entity: sensor.battery_system_current
+            name: System Current
+          - entity: sensor.allowable_charge_current
+            name: Allowable Charge Current
+          - entity: sensor.allowable_discharge_current
+            name: Allowable Discharge Current
+
+      # BMS Granular Cells & Temperatures Diagnostics
+      - type: entities
+        title: BMS Cell-Level Diagnostics
+        show_header_toggle: false
+        entities:
+          - entity: sensor.internal_battery_voltage
+            name: Pack Internal Voltage
+          - entity: sensor.external_battery_voltage
+            name: Pack External Voltage
+          - entity: sensor.max_cell_voltage
+            name: Maximum Cell Voltage
+          - entity: sensor.min_cell_voltage
+            name: Minimum Cell Voltage
+          - entity: sensor.max_cell_temperature
+            name: Maximum Cell Temp
+          - entity: sensor.min_cell_temperature
+            name: Minimum Cell Temp
+          - entity: sensor.avg_cell_temperature
+            name: Average Pack Temp
+
+
+  # ==========================================
+  # TAB 3: Solar Arrays (Photovoltaic Tab)
+  # ==========================================
+  - title: Solar Arrays
+    path: solar
+    icon: mdi:solar-power
+    cards:
+      # MPPT String 1 details (live voltages, current, power, and editable rating)
+      - type: entities
+        title: PV MPPT String 1
+        show_header_toggle: false
+        entities:
+          - entity: number.pv1_string_peak_power_limit
+            name: String 1 Configured Peak Power
+          - entity: sensor.pv1_string_voltage
+            name: String 1 Live Voltage
+          - entity: sensor.pv1_string_current
+            name: String 1 Live Current
+          - entity: sensor.pv1_string_active_power
+            name: String 1 Live Power
+
+      # MPPT String 2 details (displayed conditionally ONLY if String 2 is connected)
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: sensor.pv2_string_voltage
+            state_not: "unavailable"
+        card:
+          type: entities
+          title: PV MPPT String 2
+          show_header_toggle: false
+          entities:
+            - entity: number.pv2_string_peak_power_limit
+              name: String 2 Configured Peak Power
+            - entity: sensor.pv2_string_voltage
+              name: String 2 Live Voltage
+            - entity: sensor.pv2_string_current
+              name: String 2 Live Current
+            - entity: sensor.pv2_string_active_power
+              name: String 2 Live Power
+
+  # ==========================================
+  # TAB 4: Parameters & Settings Control (Settings Tab)
+  # ==========================================
+  - title: Settings & Controls
+    path: settings
+    icon: mdi:cog
+    cards:
+      # Current System State Context Header (replicates top of settings screen)
+      - type: glance
+        title: Current Battery & System State
+        show_state: true
+        entities:
+          - entity: sensor.battery_state_of_charge
+            name: Battery Charge
+            icon: mdi:battery
+          - entity: sensor.battery_active_power
+            name: Power Flow
+            icon: mdi:swap-vertical
+          - entity: select.inverter_operating_mode
+            name: Active Mode
+            icon: mdi:state-machine
+
+      # Mode Toggles and Dynamic Dropdowns
+      - type: entities
+        title: Inverter Parameter Settings
+        show_header_toggle: false
+        entities:
+          # Operating Mode Select (New Platform!)
+          - entity: select.inverter_operating_mode
+            name: Operating Mode
+            icon: mdi:state-machine
+          # Inverter Remote Power On/Off toggle
+          - entity: switch.inverter_remote_power
+            name: Power On/Off
+            icon: mdi:power
+          # Battery Storage System Enabled toggle
+          - entity: switch.battery_storage_system_enabled
+            name: Battery Enable
+            icon: mdi:battery-check
+          # Battery Charge & Discharge slider bounds
+          - entity: number.battery_discharge_stop_floor
+            name: Battery Discharge Stop Floor (minSoc)
+          - entity: number.feed_in_stop_soc
+            name: Feed-in Stop SOC (minGrEle)
+          - entity: number.battery_charge_stop_ceiling
+            name: Battery Charge Stop Ceiling (maxSoc)
+          # Peak Power String Ratings
+          - entity: number.pv1_string_peak_power_limit
+            name: MPPT String 1 Rating
+          - entity: number.pv2_string_peak_power_limit
+            name: MPPT String 2 Rating
+
+      # Grid Export Discharging Slots (Feed-in Priority schedules)
+      - type: entities
+        title: Grid Export Discharging Slots (Feed-in Priority)
+        show_header_toggle: false
+        entities:
+          - entity: switch.grid_export_discharge_slot_1_feed_in
+            name: Enable Discharge Slot 1
+          - entity: text.grid_export_discharge_slot_1_start_feed_in
+            name: Slot 1 Start Time
+          - entity: text.grid_export_discharge_slot_1_end_feed_in
+            name: Slot 1 End Time
+          - type: divider
+          - entity: switch.grid_export_discharge_slot_2_feed_in
+            name: Enable Discharge Slot 2
+          - entity: text.grid_export_discharge_slot_2_start_feed_in
+            name: Slot 2 Start Time
+          - entity: text.grid_export_discharge_slot_2_end_feed_in
+            name: Slot 2 End Time
+
+      # Forced Time Slot schedules
+      - type: entities
+        title: Forced Grid Charging Slots (Backup)
+        show_header_toggle: false
+        entities:
+          - entity: switch.forced_grid_charge_slot_1_backup
+            name: Enable Forced Charge Slot 1
+          - entity: text.forced_grid_charge_slot_1_start_backup
+            name: Slot 1 Start Time
+          - entity: text.forced_grid_charge_slot_1_end_backup
+            name: Slot 1 End Time
+          - type: divider
+          - entity: switch.forced_grid_charge_slot_2_backup
+            name: Enable Forced Charge Slot 2
+          - entity: text.forced_grid_charge_slot_2_start_backup
+            name: Slot 2 Start Time
+          - entity: text.forced_grid_charge_slot_2_end_backup
+            name: Slot 2 End Time
+
+  # ==========================================
+  # TAB 5: Advanced Inverter Telemetry
+  # ==========================================
+  - title: Inverter AC details
+    path: inverter
+    icon: mdi:chip
+    cards:
+      # Basic Information Card (replicates first block in app)
+      - type: entities
+        title: Basic Information
+        show_header_toggle: false
+        entities:
+          - entity: sensor.inverter_model
+            name: Product Model
+          - entity: sensor.arm_version
+            name: ARM Software Version
+          - entity: sensor.inverter_rated_power
+            name: Rated Power Capability
+          - entity: sensor.installation_date
+            name: Installation Base Date
+
+      # Real-time Information Card (replicates second block in app)
+      - type: entities
+        title: Real-time Information
+        show_header_toggle: false
+        entities:
+          - entity: sensor.inverter_operation_status
+            name: Inverter Status (runsta)
+          - entity: sensor.grid_voltage_phase_r
+            name: Inverter AC Voltage
+          - entity: sensor.grid_current_phase_r
+            name: Inverter AC Current
+          - entity: sensor.off_grid_voltage_phase_r
+            name: Off-grid AC Voltage
+          - entity: sensor.off_grid_current_phase_r
+            name: Off-grid AC Current
+          - entity: sensor.off_grid_power_phase_r
+            name: Off-grid AC Power
+          - entity: sensor.inverter_ambient_temperature
+            name: Inverter Temperature
+
+      # Grid Parameters Card (replicates Grid Parameters screen in Screenshot_20260518-091156.png)
+      - type: entities
+        title: Grid Parameters
+        show_header_toggle: false
+        entities:
+          - entity: sensor.grid_country
+            name: Country/Region
+            icon: mdi:earth
+          - entity: sensor.grid_standard_regulation
+            name: Grid Regulations
+            icon: mdi:handshake
+
+      - type: entities
+        title: Smart WiFi / LAN Module Firmware
+        show_header_toggle: false
+        entities:
+          - entity: sensor.wifi_stick_firmware_version
+            name: WiFi MCU Active Version
+          - entity: sensor.wifi_stick_latest_available_firmware
+            name: WiFi OTA Available Update
+
+      - type: entities
+        title: Inverter Processor Firmware (Power-Box)
+        show_header_toggle: false
+        entities:
+          - entity: sensor.arm_version
+            name: ARM Active Version
+          - entity: sensor.main_dsp_version
+            name: DSP1 Active Version
+          - entity: sensor.slave_dsp_version
+            name: DSP2 Active Version
+          - entity: sensor.inverter_latest_available_firmware
+            name: Inverter OTA Available Update
+
+      - type: entities
+        title: Battery BMS Firmware (HVE)
+        show_header_toggle: false
+        entities:
+          - entity: sensor.bms_firmware_version
+            name: BMS Active Version
+          - entity: sensor.bms_latest_available_firmware
+            name: BMS OTA Available Update
+
+      # Smart Grid Meter (replicates Electricmeter screen in Screenshot_20260518-090403.png)
+      - type: entities
+        title: Smart Grid Meter (Electricmeter)
+        show_header_toggle: false
+        entities:
+          - entity: sensor.grid_meter_power
+            name: Power of Electric Meter
+            icon: mdi:gauge
+          - entity: sensor.daily_grid_import
+            name: Grid Import Today
+          - entity: sensor.daily_grid_export
+            name: Grid Export Today
+          - entity: sensor.lifetime_grid_import
+            name: Lifetime Grid Import
+          - entity: sensor.lifetime_grid_export
+            name: Lifetime Grid Export

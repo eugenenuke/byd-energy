@@ -1,0 +1,1884 @@
+openapi: 3.0.4
+info:
+  title: BYD Energy Cloud Reverse-Engineered API Specification
+  description: >
+    Complete OpenAPI specification for managing BYD Energy household systems (PV, Inverter/PCS, Battery/BMS, and Smart Meters).
+    This specification documents authentication workflows (AES-256 password encryption, JWT exchange, and token refresh), 
+    device status lookups, real-time telemetry streams across multiple hardware display types, and secure parameter control.
+  version: 1.1.0
+
+servers:
+  - url: https://energyhousehold.bydessys.com
+    description: BYD Production Cloud Server
+
+tags:
+  - name: Authentication & Account
+    description: Initial cryptographic handshake, secure password login, and JWT session management.
+  - name: Station & Installation Settings
+    description: High-level address, nation, grid standards (EN50549), and MPPT max power ratings.
+  - name: Real-Time Diagnostics
+    description: Granular live sensor matrices across hardware display types and instantaneous State of Charge.
+  - name: Historical Analytics & Power Curves
+    description: Time-series active power curves and accumulated energy totals (daily, monthly, yearly, lifetime).
+  - name: System Alarms & Faults
+    description: Paginated hardware fault and alarm logs categorized by severity and subsystem.
+  - name: OTA Firmware & Maintenance
+    description: Hardware series lookups (BMS/PCS types), OTA version comparisons, and remote upgrade triggers.
+  - name: Hardware Register Control
+    description: EEPROM register inspection and direct remote parameter modifications.
+
+paths:
+  /app/GetSecurityKey:
+    post:
+      tags:
+        - Authentication & Account
+      summary: Retrieve session-specific cryptographic material
+      description: >
+        Initiates the login flow by providing a unique security key UUID and raw AES encryption key. 
+        The `key` hex string must be truncated to 32 characters and used as the AES-256-CBC key with a hardcoded IV (`"secret&aes&2024&"`) to encrypt the user's password.
+      responses:
+        "200":
+          description: "Successfully generated security key material."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SecurityKeyResponse'
+
+  /api/app/account/app-login:
+    post:
+      tags:
+        - Authentication & Account
+      summary: Authenticate user credentials and exchange for JWT tokens
+      description: >
+        Submits the user's username/email, the security key UUID (`KeyId`), and the AES-256 encrypted password.
+        Returns both an AccessToken (valid for 2 hours) and a RefreshToken (valid for 24 hours), and sets an identity cookie.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        "200":
+          description: "Successful login."
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+              description: "ASP.NET Core Identity session cookie (.AspNetCore.Identity.Application)."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+
+  /api/app/account/refresh-token:
+    post:
+      tags:
+        - Authentication & Account
+      summary: Refresh an expired AccessToken
+      description: "Exchanges the expired access token and active refresh token for a fresh token pair."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        "200":
+          description: "Successfully refreshed session tokens."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshTokenResponse'
+
+  /UserProduct/ByUserName:
+    get:
+      tags:
+        - Station & Installation Settings
+      summary: Retrieve list of products associated with a user account
+      parameters:
+        - name: UserName
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "user@example.com"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "User product list retrieved successfully."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProductResponse'
+
+  /Product/app/getPagedPidByType:
+    post:
+      tags:
+        - Station & Installation Settings
+      summary: Get paginated list of registered devices and their hardware metadata
+      description: "Primary discovery endpoint after login. Discovers all registered PIDs, their product series (lixia, chunfen), hardware models, and BMS versions."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PagedPidRequest'
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "Registered device list retrieved successfully."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedPidResponse'
+
+  /Product/GetProductOnlineState:
+    get:
+      tags:
+        - Real-Time Diagnostics
+      summary: Check cloud connectivity status of a device
+      parameters:
+        - name: pid
+          in: query
+          required: true
+          description: "Unique Product ID (PID / Serial Number) of the inverter or battery system."
+          schema:
+            type: string
+            example: "0SSBJD5002K6BBFBS1000000"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "Connectivity status retrieved."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OnlineStateResponse'
+
+  /Upgrade/GetBmsType:
+    get:
+      tags:
+        - OTA Firmware & Maintenance
+      summary: Get Battery Management System hardware platform code
+      description: >
+        Returns an integer code indicating the hardware series of the connected battery. 
+        Decoded mappings (verified from `helperFn-CdRfY6F9.js`):
+        * `1` = Battery Box-LV5.0
+        * `2` = Battery-Box HVB
+        * `3` = Battery-Box LV5.0+
+        * `4` = Battery-Box HVE (High Voltage Storage Series)
+        * `5` = Battery-Box HVS+
+        * `6` = Battery-Box HVM+
+      parameters:
+        - name: pid
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "0SSBJD5002K6BBFBS1000000"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "BMS hardware type retrieved."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BmsTypeResponse'
+
+  /Upgrade/GetPcsType:
+    get:
+      tags:
+        - OTA Firmware & Maintenance
+      summary: Get Power Conversion System (Inverter) hardware specification code
+      parameters:
+        - name: pid
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "0SSBJD5002K6BBFBS1000000"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "PCS hardware type retrieved."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PcsTypeResponse'
+
+  /Upgrade/GetCurrentUpgradeAreaVersion:
+    get:
+      tags:
+        - OTA Firmware & Maintenance
+      summary: Get current firmware version of a subsystem for OTA comparison
+      parameters:
+        - name: DeviceType
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [bms, pcs, f527]
+            example: "bms"
+        - name: pid
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "0SSBJD5002K6BBFBS1000000"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "Current OTA version string retrieved."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpgradeVersionResponse'
+
+  /Upgrade/GetReadyUpgradeAppArea:
+    get:
+      tags:
+        - OTA Firmware & Maintenance
+      summary: Get inactive firmware bank identifier ready for OTA flashing
+      parameters:
+        - name: DeviceType
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [bms, pcs, f527]
+            example: "bms"
+        - name: pid
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "0SSBJD5002K6BBFBS1000000"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "Ready upgrade bank identifier retrieved (e.g. 'B')."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpgradeBankResponse'
+
+  /Upgrade/app/GetLatestVersion:
+    get:
+      tags:
+        - OTA Firmware & Maintenance
+      summary: Check BYD cloud repository for latest available firmware
+      parameters:
+        - name: ProductType
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [lixia, chunfen, jingzhe]
+            example: "lixia"
+        - name: deviceType
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [bms, pcs, f527]
+            example: "bms"
+        - name: appType
+          in: query
+          required: false
+          schema:
+            type: string
+            example: "1"
+        - name: bmsType
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: ["1", "2", "3", "4", "5", "6"]
+            example: "4"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "Latest version string retrieved (or empty string if up to date)."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpgradeVersionResponse'
+
+  /Upgrade/remoteUpgrade:
+    post:
+      tags:
+        - OTA Firmware & Maintenance
+      summary: Trigger an Over-The-Air (OTA) firmware flash on a subsystem
+      description: "Initiates an OTA firmware update for the target subsystem (BMS, PCS, or WiFi stick) using the specified version string."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RemoteUpgradeRequest'
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "OTA flash initiated successfully."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RemoteUpgradeResponse'
+
+  /battery/GetParaSOC:
+    get:
+      tags:
+        - Real-Time Diagnostics
+      summary: Retrieve high-precision State of Charge float
+      parameters:
+        - name: productType
+          in: query
+          required: true
+          description: >
+            Product series codename (named after traditional Chinese solar terms).
+            Known options: `lixia` (Inverter/PCS systems like SH5K), `chunfen` (Battery Box / Tower systems), `jingzhe`.
+          schema:
+            type: string
+            enum: [lixia, chunfen, jingzhe]
+            example: "lixia"
+        - name: pid
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "0SSBJD5002K6BBFBS1000000"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "Instantaneous SOC retrieved."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParaSocResponse'
+
+  /PV/GetPvRealtimes:
+    get:
+      tags:
+        - Real-Time Diagnostics
+      summary: Retrieve real-time PV string electrical parameters (voltage, current, power)
+      parameters:
+        - name: productType
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [lixia, chunfen, jingzhe]
+            example: "lixia"
+        - name: pid
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "0SSBJD5002K6BBFBS1000000"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "PV string real-time parameters retrieved."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PvRealtimesResponse'
+
+  /HistoryRealtime/GetTodayEleData:
+    get:
+      tags:
+        - Historical Analytics & Power Curves
+      summary: Retrieve daily aggregated energy totals (in kWh)
+      parameters:
+        - name: productType
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [lixia, chunfen, jingzhe]
+            example: "lixia"
+        - name: pid
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "0SSBJD5002K6BBFBS1000000"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "Today's energy metrics retrieved."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TodayEleDataResponse'
+
+  /HistoryRealtime/GetDayPowerData:
+    get:
+      tags:
+        - Historical Analytics & Power Curves
+      summary: Retrieve time-series active power array (5-minute intervals)
+      parameters:
+        - name: productType
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [lixia, chunfen, jingzhe]
+            example: "lixia"
+        - name: pid
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "0SSBJD5002K6BBFBS1000000"
+        - name: day
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "2026-05-16T00:00:00"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "Active power time-series retrieved."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DayPowerDataResponse'
+
+  /HistoryRealtime/GetMonthEleData:
+    get:
+      tags:
+        - Historical Analytics & Power Curves
+      summary: Retrieve daily energy totals for a given month (in kWh)
+      parameters:
+        - name: productType
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [lixia, chunfen, jingzhe]
+            example: "lixia"
+        - name: pid
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "0SSBJD5002K6BBFBS1000000"
+        - name: month
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "2026-05"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "Monthly daily energy summary retrieved."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MonthEleDataResponse'
+
+  /HistoryRealtime/GetYearEleData:
+    get:
+      tags:
+        - Historical Analytics & Power Curves
+      summary: Retrieve monthly energy totals for a given year (in kWh)
+      parameters:
+        - name: productType
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [lixia, chunfen, jingzhe]
+            example: "lixia"
+        - name: pid
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "0SSBJD5002K6BBFBS1000000"
+        - name: year
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "2026-01-01T00:00:00"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "Yearly monthly energy summary retrieved."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MonthEleDataResponse'
+
+  /HistoryRealtime/GetTotalEleDataNew:
+    get:
+      tags:
+        - Historical Analytics & Power Curves
+      summary: Retrieve lifetime accumulated energy totals (in kWh)
+      parameters:
+        - name: productType
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [lixia, chunfen, jingzhe]
+            example: "lixia"
+        - name: pid
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "0SSBJD5002K6BBFBS1000000"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "Lifetime energy totals retrieved."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TotalEleDataNewResponse'
+
+  /HistoryRealtime/GetTotalEleData:
+    get:
+      tags:
+        - Historical Analytics & Power Curves
+      summary: Retrieve lifetime accumulated energy totals array (in kWh)
+      parameters:
+        - name: productType
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [lixia, chunfen, jingzhe]
+            example: "lixia"
+        - name: pid
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "0SSBJD5002K6BBFBS1000000"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "Lifetime energy totals array retrieved."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TotalEleDataResponse'
+
+  /HistoryRealtime/GetBatteryPowCurve:
+    get:
+      tags:
+        - Historical Analytics & Power Curves
+      summary: Retrieve time-series battery active power curve (in kW)
+      parameters:
+        - name: productType
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [lixia, chunfen, jingzhe]
+            example: "lixia"
+        - name: pid
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "0SSBJD5002K6BBFBS1000000"
+        - name: queryDate
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "2026-05-16"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "Battery power curve retrieved."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PowerCurveResponse'
+
+  /HistoryRealtime/GetAcPowCurve:
+    get:
+      tags:
+        - Historical Analytics & Power Curves
+      summary: Retrieve time-series Inverter AC active power curve (in kW)
+      parameters:
+        - name: productType
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [lixia, chunfen, jingzhe]
+            example: "lixia"
+        - name: pid
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "0SSBJD5002K6BBFBS1000000"
+        - name: queryDate
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "2026-05-16"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "AC power curve retrieved."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PowerCurveResponse'
+
+  /FaultAlarm/PageAsync:
+    post:
+      tags:
+        - System Alarms & Faults
+      summary: Retrieve paginated system fault and alarm history
+      description: "Retrieves a paginated list of hardware fault alarms categorized by severity and subsystem."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FaultAlarmRequest'
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "Fault alarms retrieved successfully."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FaultAlarmResponse'
+
+  /Product/GetStationBasicInfoOutputByPid:
+    get:
+      tags:
+        - Station & Installation Settings
+      summary: Get station general configuration info
+      parameters:
+        - name: pid
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "0SSBJD5002K6BBFBS1000000"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "Station configuration retrieved."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StationBasicInfoResponse'
+
+  /DeviceSetting/GetDeviceBaseSettings:
+    get:
+      tags:
+        - Station & Installation Settings
+      summary: Get device baseline installation settings
+      parameters:
+        - name: productType
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [lixia, chunfen, jingzhe]
+            example: "lixia"
+        - name: pid
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "0SSBJD5002K6BBFBS1000000"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "Base settings retrieved."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceBaseSettingsResponse'
+
+  /DeviceSetting/GetDeviceSettings:
+    get:
+      tags:
+        - Station & Installation Settings
+      summary: Get device nation and grid standard settings
+      parameters:
+        - name: productType
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [lixia, chunfen, jingzhe]
+            example: "lixia"
+        - name: pid
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "0SSBJD5002K6BBFBS1000000"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "Device standard settings retrieved."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceSettingsResponse'
+
+  /Product/GetPvMaxPowerOutput:
+    get:
+      tags:
+        - Station & Installation Settings
+      summary: Get maximum allowable PV generation rating per MPPT string
+      parameters:
+        - name: pid
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "0SSBJD5002K6BBFBS1000000"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "PV max power ratings retrieved."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PvMaxPowerResponse'
+
+  /Product/SavePV1MaxPower:
+    post:
+      tags:
+        - Station & Installation Settings
+      summary: Update configured peak power rating for PV MPPT string 1
+      description: "Sets the maximum allowable peak active power limit (in Watts) for the first solar string."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SavePv1MaxPowerRequest'
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "PV1 max power updated successfully."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SavePvMaxPowerResponse'
+
+  /Product/SavePV2MaxPower:
+    post:
+      tags:
+        - Station & Installation Settings
+      summary: Update configured peak power rating for PV MPPT string 2
+      description: "Sets the maximum allowable peak active power limit (in Watts) for the second solar string."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SavePv2MaxPowerRequest'
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "PV2 max power updated successfully."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SavePvMaxPowerResponse'
+
+  /battery/GetBatteryGroups:
+    get:
+      tags:
+        - Station & Installation Settings
+      summary: Get list of attached slave battery module serial numbers
+      parameters:
+        - name: productType
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [lixia, chunfen, jingzhe]
+            example: "lixia"
+        - name: sn
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "0SSBJD5002K6BBFBS1000000"
+        - name: pid
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "0SSBJD5002K6BBFBS1000000"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "Battery group serial numbers retrieved."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatteryGroupsResponse'
+
+  /RealtimeConfig/GetDeviceEepromSettings:
+    get:
+      tags:
+        - Hardware Register Control
+      summary: Retrieve internal hardware EEPROM parameter table
+      parameters:
+        - name: productType
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [lixia, chunfen, jingzhe]
+            example: "lixia"
+        - name: pid
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "0SSBJD5002K6BBFBS1000000"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "EEPROM settings retrieved."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EepromSettingsResponse'
+
+  /RealtimeConfig/GetRealtimeDataList:
+    post:
+      tags:
+        - Real-Time Diagnostics
+      summary: Retrieve real-time diagnostic sensor matrix for a subsystem
+      description: >
+        The primary polling endpoint for live metrics. The returned sensor list varies depending on `realtimeDisplayType`:
+        * `sys`: High-level system active power flow (`pvPow`, `lPow`, `battPow`, `me1Pow`) and accumulated energy.
+        * `pcs`: Inverter electrical parameters (grid voltages/currents, EPS voltages/currents, internal firmware versions).
+        * `batterySystem`: Overall battery pack summary (system voltage, remaining capacity Ah, allowable charge/discharge limits, SOH).
+        * `bms`: Granular cell-level BMS details (requires `childNo` parameter for specific battery packs).
+        * `eleme`: Attached smart meter readings (active power, power factor, Chint DDSU666 meter info).
+      parameters:
+        - name: productType
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [lixia, chunfen, jingzhe]
+            example: "lixia"
+        - name: pid
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "0SSBJD5002K6BBFBS1000000"
+        - name: clientType
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [app, web]
+            example: "app"
+        - name: realtimeDisplayType
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [sys, pcs, batterySystem, bms, eleme]
+            example: "sys"
+        - name: no
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "1"
+        - name: childNo
+          in: query
+          required: false
+          description: "Target battery module index (required when realtimeDisplayType is bms)."
+          schema:
+            type: string
+            example: "1"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "Real-time sensor list retrieved."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RealtimeDataListResponse'
+
+  /Upgrade/UpdateDeviceSetDirect:
+    post:
+      tags:
+        - Hardware Register Control
+      summary: Directly modify internal hardware configuration registers
+      description: >
+        Dispatches command options to update EEPROM registers on the BYD Inverter (PCS) or Battery BMS. 
+        Supported configuration keys:
+        * `onGSoc`: On-grid reserve State of Charge limit (0–100%).
+        * `offGSoc`: Off-grid emergency reserve State of Charge limit (0–100%).
+        * `allgrc`: Allow grid charging toggle (`1` = enabled, `0` = disabled).
+        * `batEna` / `batEn1`, `batEn2`, `batEn3`: Enable battery charging time window flags.
+        * `batTime1`, `batTime2`, `batTime3`: Time window strings (e.g., `"01:00-06:00"`).
+        * `cPct1`, `cPct2`, `cPct3`: Charging power percentage (0–100%).
+        * `gridEn1`, `gridEn2`, `gridEn3`: Enable grid discharging time window flags.
+        * `gridTime1`, `gridTime2`, `gridTime3`: Discharging time window strings.
+        * `dcPct1`, `dcPct2`, `dcPct3`: Discharging power percentage (0–100%).
+        * `afciEn`: Arc-Fault Circuit Interrupter toggle (`1` or `0`).
+        * `drmEn`: Demand Response Mode toggle (`1` or `0`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDeviceSetRequest'
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "Configuration successfully updated."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateDeviceSetResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    SecurityKeyResponse:
+      type: object
+      properties:
+        Success:
+          type: boolean
+          example: true
+        Message:
+          type: string
+          example: "Success"
+        Data:
+          type: object
+          properties:
+            keyId:
+              type: string
+              format: uuid
+              example: "8bc074c2-fd83-4cfa-8125-244d274da79e"
+            key:
+              type: string
+              example: "cdfac5ab41e84f53b5feeb05bb89d5f6"
+        Code:
+          type: integer
+          example: 200
+
+    LoginRequest:
+      type: object
+      required:
+        - KeyId
+        - Name
+        - Password
+      properties:
+        KeyId:
+          type: string
+          format: uuid
+          example: "8bc074c2-fd83-4cfa-8125-244d274da79e"
+        Name:
+          type: string
+          example: "user@example.com"
+        Password:
+          type: string
+          description: "Base64 encoded AES-256-CBC encrypted password."
+          example: "0SjsaL7AoVHuJQ+M5FAfUQ=="
+
+    LoginResponse:
+      type: object
+      properties:
+        Success:
+          type: boolean
+          example: true
+        Message:
+          type: string
+          example: "Success"
+        Data:
+          type: object
+          properties:
+            Id:
+              type: string
+              format: uuid
+              example: "2f1020bc-1555-938b-bd55-3a20acccb9c9"
+            UserName:
+              type: string
+              example: "user@example.com"
+            Token:
+              type: string
+              example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+            RefreshToken:
+              type: string
+              example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+            Roles:
+              type: array
+              items:
+                type: string
+              example: ["user"]
+        Code:
+          type: integer
+          example: 200
+
+    RefreshTokenRequest:
+      type: object
+      required:
+        - AccessToken
+        - RefreshToken
+      properties:
+        AccessToken:
+          type: string
+        RefreshToken:
+          type: string
+
+    RefreshTokenResponse:
+      type: object
+      properties:
+        Success:
+          type: boolean
+          example: true
+        Data:
+          type: object
+          properties:
+            AccessToken:
+              type: string
+            RefreshToken:
+              type: string
+        Code:
+          type: integer
+          example: 200
+
+    OnlineStateResponse:
+      type: object
+      properties:
+        Success:
+          type: boolean
+          example: true
+        Data:
+          type: object
+          properties:
+            OnlineState:
+              type: integer
+              enum: [0, 1, 2]
+              description: "1 = Online, 0 = Offline, 2 = Fault"
+              example: 1
+            OnlineStateDesc:
+              type: string
+              example: "在线"
+        Code:
+          type: integer
+          example: 200
+
+    BmsTypeResponse:
+      type: object
+      properties:
+        Success:
+          type: boolean
+          example: true
+        Data:
+          type: string
+          enum: ["1", "2", "3", "4", "5", "6"]
+          description: "1=LV5.0, 2=HVB, 3=LV5.0+, 4=HVE, 5=HVS+, 6=HVM+"
+          example: "4"
+        Code:
+          type: integer
+          example: 200
+
+    PcsTypeResponse:
+      type: object
+      properties:
+        Success:
+          type: boolean
+          example: true
+        Data:
+          type: string
+          example: "SS_S_H"
+        Code:
+          type: integer
+          example: 200
+
+    UpgradeVersionResponse:
+      type: object
+      properties:
+        Success:
+          type: boolean
+          example: true
+        Data:
+          type: string
+          nullable: true
+          description: "Firmware version string (e.g. 'V505') or empty string/null if none."
+          example: "V505"
+        Code:
+          type: integer
+          example: 200
+
+    UpgradeBankResponse:
+      type: object
+      properties:
+        Success:
+          type: boolean
+          example: true
+        Data:
+          type: string
+          description: "Firmware storage bank identifier (e.g. 'A' or 'B')."
+          example: "B"
+        Code:
+          type: integer
+          example: 200
+
+    RemoteUpgradeRequest:
+      type: object
+      required:
+        - Pid
+        - Type
+        - Version
+      properties:
+        Pid:
+          type: string
+          example: "0SSBJD5002K6BBFBS1000000"
+        Type:
+          type: string
+          enum: [bms, pcs, f527]
+          example: "bms"
+        Version:
+          type: string
+          example: "V506"
+
+    RemoteUpgradeResponse:
+      type: object
+      properties:
+        Success:
+          type: boolean
+          example: true
+        Message:
+          type: string
+          example: "Success"
+        Data:
+          type: boolean
+          example: true
+        Code:
+          type: integer
+          example: 200
+
+    ParaSocResponse:
+      type: object
+      properties:
+        Success:
+          type: boolean
+          example: true
+        Data:
+          type: number
+          format: float
+          example: 100.0
+        Code:
+          type: integer
+          example: 200
+
+    TodayEleDataResponse:
+      type: object
+      properties:
+        Success:
+          type: boolean
+          example: true
+        Data:
+          type: object
+          properties:
+            elecDailySale:
+              type: number
+              description: "Grid export today in kWh."
+              example: 24.3
+            elecDailyBuy:
+              type: number
+              description: "Grid import today in kWh."
+              example: 34.3
+            pvDailyProduct:
+              type: number
+              description: "PV generation today in kWh."
+              example: 33.7
+            loadDailyConsume:
+              type: number
+              description: "Load consumption today in kWh."
+              example: 32.4
+            bmsDailyCharge:
+              type: number
+              description: "Battery charged energy today in kWh."
+              example: 19.6
+            bmsDailyDisCharge:
+              type: number
+              description: "Battery discharged energy today in kWh."
+              example: 12.3
+        Code:
+          type: integer
+          example: 200
+
+    DayPowerDataResponse:
+      type: object
+      properties:
+        Success:
+          type: boolean
+          example: true
+        Data:
+          type: array
+          items:
+            type: object
+            properties:
+              PvPow:
+                type: number
+                description: "Solar power in W."
+                example: 320.0
+              LPow:
+                type: number
+                description: "Household load power in W."
+                example: 7410.0
+              BattPow:
+                type: number
+                description: "Battery active power in W (positive = discharging, negative = charging)."
+                example: -4810.0
+              Me1Pow:
+                type: number
+                description: "Meter 1 active power in W (negative = grid export, positive = grid import)."
+                example: -12226.0
+              RecordTime:
+                type: string
+                format: date-time
+                example: "2026-05-16T02:04:27Z"
+        Code:
+          type: integer
+          example: 200
+
+    PowerCurveResponse:
+      type: object
+      properties:
+        Success:
+          type: boolean
+          example: true
+        Data:
+          type: object
+          properties:
+            XData:
+              type: array
+              items:
+                type: string
+                format: date-time
+              example: ["2026-05-16T00:04:08", "2026-05-16T00:09:09"]
+            YData:
+              type: array
+              items:
+                type: number
+              example: [2.4, 2.5]
+        Code:
+          type: integer
+          example: 200
+
+    MonthEleDataResponse:
+      type: object
+      properties:
+        Success:
+          type: boolean
+          example: true
+        Data:
+          type: array
+          items:
+            type: object
+            properties:
+              Pvdec:
+                type: number
+                description: "PV generation for the period in kWh."
+                example: 36.8
+              Batdc:
+                type: number
+                description: "Battery discharge energy in kWh."
+                example: 7.9
+              Batddc:
+                type: number
+                description: "Battery charge energy in kWh."
+                example: 6.5
+              Fndc:
+                type: number
+                description: "Grid export energy in kWh."
+                example: 24.6
+              Dec:
+                type: number
+                description: "Grid import energy in kWh."
+                example: 0.9
+              Ldcap:
+                type: number
+                description: "Household load energy in kWh."
+                example: 7.5
+              RecordTime:
+                type: string
+                description: "Period index string (e.g. day '1'..'31' or month '1'..'12')."
+                example: "1"
+        Code:
+          type: integer
+          example: 200
+
+    TotalEleDataNewResponse:
+      type: object
+      properties:
+        Success:
+          type: boolean
+          example: true
+        Data:
+          type: object
+          properties:
+            elecTotalSale:
+              type: number
+              description: "Lifetime grid export in kWh."
+              example: 656.4
+            elecTotalBuy:
+              type: number
+              description: "Lifetime grid import in kWh."
+              example: 185.5
+            pvTotalProduct:
+              type: number
+              description: "Lifetime PV generation in kWh."
+              example: 1242.5
+            loadTotalConsume:
+              type: number
+              description: "Lifetime load consumption in kWh."
+              example: 616.2
+            bmsTotalCharge:
+              type: number
+              description: "Lifetime battery charged energy in kWh."
+              example: 336.9
+            bmsTotalDisCharge:
+              type: number
+              description: "Lifetime battery discharged energy in kWh."
+              example: 343.4
+            recordTime:
+              type: string
+              format: date-time
+              example: "2026-05-17T17:42:05"
+        Code:
+          type: integer
+          example: 200
+
+    TotalEleDataResponse:
+      type: object
+      properties:
+        Success:
+          type: boolean
+          example: true
+        Data:
+          type: array
+          items:
+            $ref: '#/components/schemas/TotalEleDataNewResponse/properties/Data'
+        Code:
+          type: integer
+          example: 200
+
+    EepromSettingsResponse:
+      type: object
+      properties:
+        Success:
+          type: boolean
+          example: true
+        Data:
+          type: array
+          items:
+            type: object
+            properties:
+              jsonName:
+                type: string
+                example: "onGSoc"
+              jsonValue:
+                type: string
+                example: "10"
+              name:
+                type: string
+                example: "On-grid reserve SOC"
+              unit:
+                type: string
+                nullable: true
+                example: "%"
+        Code:
+          type: integer
+          example: 200
+
+    RealtimeDataListResponse:
+      type: object
+      properties:
+        Success:
+          type: boolean
+          example: true
+        Data:
+          type: array
+          items:
+            type: object
+            properties:
+              jsonName:
+                type: string
+                example: "gVR"
+              jsonValue:
+                type: string
+                nullable: true
+                example: "240.9"
+              name:
+                type: string
+                example: "Grid voltage (phase R)"
+              unit:
+                type: string
+                nullable: true
+                example: "V"
+        Code:
+          type: integer
+          example: 200
+
+    UpdateDeviceSetRequest:
+      type: object
+      required:
+        - Pid
+        - ProductType
+        - DeviceType
+        - cmdOptions
+        - operType
+      properties:
+        Pid:
+          type: string
+          example: "0SSBJD5002K6BBFBS1000000"
+        ProductType:
+          type: string
+          enum: [lixia, chunfen, jingzhe]
+          example: "lixia"
+        DeviceType:
+          type: string
+          enum: [pcs, bms, f527]
+          example: "pcs"
+        cmdOptions:
+          type: array
+          items:
+            type: object
+            required:
+              - JsonName
+              - JsonValue
+              - TableAttributeId
+            properties:
+              JsonName:
+                type: string
+                example: "onGSoc"
+              JsonValue:
+                type: integer
+                description: "Integer, Float or String depending on parameter."
+                example: 15
+              TableAttributeId:
+                type: integer
+                example: 0
+        operType:
+          type: string
+          enum: [remote]
+          example: "remote"
+
+    UpdateDeviceSetResponse:
+      type: object
+      properties:
+        Success:
+          type: boolean
+          example: true
+        Message:
+          type: string
+          example: "Success"
+        Data:
+          type: object
+          nullable: true
+        Code:
+          type: integer
+          example: 200
+
+    FaultAlarmRequest:
+      type: object
+      required:
+        - PageIndex
+        - PageSize
+        - ProductType
+        - ProductSN
+      properties:
+        PageIndex:
+          type: integer
+          example: 1
+        PageSize:
+          type: integer
+          example: 20
+        ProductType:
+          type: string
+          enum: [lixia, chunfen, jingzhe]
+          example: "jingzhe"
+        ProductSN:
+          type: string
+          example: "0SSBJD5002K6BBFBS1000000"
+        Order:
+          type: object
+          properties:
+            Name:
+              type: string
+              example: "EventCategoryDesc"
+            Order:
+              type: integer
+              example: 0
+            Desc:
+              type: boolean
+              example: true
+
+    FaultAlarmResponse:
+      type: object
+      properties:
+        Success:
+          type: boolean
+          example: true
+        Data:
+          type: object
+          properties:
+            Items:
+              type: array
+              items:
+                type: object
+                properties:
+                  EventCategory:
+                    type: integer
+                    description: "Alarm category severity (1=Critical, 2=Major, 3=Minor)."
+                    example: 1
+                  EventName:
+                    type: string
+                    example: "Grid Overvoltage"
+                  StartTime:
+                    type: string
+                    format: date-time
+                    example: "2026-05-16T12:00:00Z"
+        Code:
+          type: integer
+          example: 200
+
+    StationBasicInfoResponse:
+      type: object
+      properties:
+        Success:
+          type: boolean
+          example: true
+        Data:
+          type: object
+          properties:
+            pid:
+              type: string
+              example: "0SSBJD5002K6BBFBS1000000"
+            countryArea:
+              type: string
+              example: "Ireland"
+            gridRegulation:
+              type: string
+              example: "EN50549-1"
+            address:
+              type: string
+              example: "44 Alder green"
+            state:
+              type: string
+              example: "Dublin"
+        Code:
+          type: integer
+          example: 200
+
+    DeviceBaseSettingsResponse:
+      type: object
+      properties:
+        Success:
+          type: boolean
+          example: true
+        Data:
+          type: object
+          properties:
+            qaTime:
+              type: string
+              description: "Installation date in YYYY-MM-DD format."
+              example: "2026-04-15"
+        Code:
+          type: integer
+          example: 200
+
+    DeviceSettingsResponse:
+      type: object
+      properties:
+        Success:
+          type: boolean
+          example: true
+        Data:
+          type: object
+          properties:
+            StandardId:
+              type: integer
+              example: 30
+            Nation:
+              type: string
+              example: "Ireland"
+            Standard:
+              type: string
+              example: "EN50549"
+        Code:
+          type: integer
+          example: 200
+
+    PvMaxPowerResponse:
+      type: object
+      properties:
+        Success:
+          type: boolean
+          example: true
+        Data:
+          type: object
+          properties:
+            pid:
+              type: string
+              example: "0SSBJD5002K6BBFBS1000000"
+            pv1MaxPower:
+              type: number
+              example: 4500
+            pv2MaxPower:
+              type: number
+              example: 4500
+        Code:
+          type: integer
+          example: 200
+
+    SavePv1MaxPowerRequest:
+      type: object
+      required:
+        - pid
+        - pv1MaxPower
+      properties:
+        pid:
+          type: string
+          description: "Unique Product ID (PID) of the inverter."
+          example: "0SSBJD5002K6BBFBS1000000"
+        pv1MaxPower:
+          type: integer
+          description: "Peak power limit for PV string 1 in Watts."
+          example: 4500
+
+    SavePv2MaxPowerRequest:
+      type: object
+      required:
+        - pid
+        - pv2MaxPower
+      properties:
+        pid:
+          type: string
+          description: "Unique Product ID (PID) of the inverter."
+          example: "0SSBJD5002K6BBFBS1000000"
+        pv2MaxPower:
+          type: integer
+          description: "Peak power limit for PV string 2 in Watts."
+          example: 4500
+
+    SavePvMaxPowerResponse:
+      type: object
+      properties:
+        Success:
+          type: boolean
+          example: true
+        Message:
+          type: string
+          example: "Success"
+        Data:
+          type: boolean
+          description: "Indicates whether the update was successful."
+          example: true
+        Code:
+          type: integer
+          example: 200
+
+    BatteryGroupsResponse:
+      type: object
+      properties:
+        Success:
+          type: boolean
+          example: true
+        Data:
+          type: array
+          items:
+            type: string
+          example: []
+        Code:
+          type: integer
+          example: 200
+
+    PvRealtimesResponse:
+      type: object
+      properties:
+        Success:
+          type: boolean
+          example: true
+        Data:
+          type: array
+          items:
+            type: object
+            properties:
+              sn:
+                type: string
+                example: "0SSBJD5002K6BBFBS1000000"
+              pv1vol:
+                type: string
+                description: "PV string 1 voltage in V."
+                example: "146.4"
+              pv2vol:
+                type: string
+                description: "PV string 2 voltage in V."
+                example: "147.9"
+              pv1cur:
+                type: string
+                description: "PV string 1 current in A."
+                example: "0"
+              pv2cur:
+                type: string
+                description: "PV string 2 current in A."
+                example: "1.3"
+              pv1Pow:
+                type: string
+                description: "PV string 1 active power in W."
+                example: "0"
+              pv2Pow:
+                type: string
+                description: "PV string 2 active power in W."
+                example: "195"
+              pvInM:
+                type: string
+                example: "Single"
+        Code:
+          type: integer
+          example: 200
+
+    UserProductResponse:
+      type: object
+      properties:
+        Success:
+          type: boolean
+          example: true
+        Data:
+          type: object
+          properties:
+            Items:
+              type: array
+              items:
+                type: object
+                properties:
+                  UserId:
+                    type: string
+                    example: "2f1020bc-1555-938b-bd55-3a20acccb9c9"
+                  ProductSN:
+                    type: string
+                    example: "0SSBJD5002K6BBFBS1000000"
+        Code:
+          type: integer
+          example: 200
+
+    PagedPidRequest:
+      type: object
+      required:
+        - PageIndex
+        - PageSize
+        - Filter
+      properties:
+        PageIndex:
+          type: integer
+          example: 1
+        PageSize:
+          type: integer
+          example: 20
+        Filter:
+          type: object
+          properties:
+            ProductType:
+              type: string
+              enum: [lixia, chunfen, jingzhe]
+              example: "lixia"
+            PidAndNote:
+              type: string
+              example: ""
+
+    PagedPidResponse:
+      type: object
+      properties:
+        Success:
+          type: boolean
+          example: true
+        Data:
+          type: object
+          properties:
+            TotalCount:
+              type: integer
+              example: 1
+            Items:
+              type: array
+              items:
+                type: object
+                properties:
+                  Pid:
+                    type: string
+                    example: "0SSBJD5002K6BBFBS1000000"
+                  ProductType:
+                    type: string
+                    enum: [lixia, chunfen, jingzhe]
+                    example: "lixia"
+                  ProductTypeDescription:
+                    type: string
+                    example: "立夏"
+                  ProductModel:
+                    type: string
+                    example: "XD3-6KTL"
+                  BmsType:
+                    type: string
+                    example: "4"
+                  PcsBrand:
+                    type: string
+                    example: "SS"
+        Code:
+          type: integer
+          example: 200

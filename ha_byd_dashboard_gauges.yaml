@@ -1,0 +1,81 @@
+# Home Assistant Dashboard - BYD Native Dial & Gauges Edition
+# Uses purely native Home Assistant Core card components - Zero custom cards needed.
+
+title: BYD Energy Dial Portal
+views:
+  - title: Gauges Overview
+    path: gauges_overview
+    icon: mdi:gauge
+    cards:
+      # Real-time Power flow circular gauges in a 2x2 grid
+      - type: grid
+        title: System Live Flows (Watts)
+        columns: 2
+        square: false
+        cards:
+          - type: gauge
+            entity: sensor.total_pv_power
+            name: Solar Generation
+            min: 0
+            max: 6000
+            severity:
+              green: 3000
+              yellow: 1000
+              red: 0
+            icon: mdi:solar-power
+
+          - type: gauge
+            entity: sensor.household_load_power
+            name: House consumption
+            min: 0
+            max: 8000
+            severity:
+              green: 0
+              yellow: 3000
+              red: 5000
+
+          - type: gauge
+            entity: sensor.battery_active_power
+            name: Battery active Flow
+            min: -5000
+            max: 5000
+            # Displays charging (+ W) as green and discharging (- W) as orange/red
+            severity:
+              green: 0
+              yellow: -2500
+              red: -5000
+
+          - type: gauge
+            entity: sensor.grid_meter_power
+            name: Grid active Flow
+            min: -5000
+            max: 5000
+            severity:
+              green: -5000
+              yellow: 0
+              red: 2500
+
+      # High-level Storage gauges
+      - type: grid
+        columns: 2
+        square: false
+        cards:
+          - type: gauge
+            entity: sensor.battery_state_of_charge
+            name: Battery Charge SOC
+            min: 0
+            max: 100
+            severity:
+              green: 20
+              yellow: 10
+              red: 0
+
+          - type: gauge
+            entity: sensor.battery_state_of_health
+            name: Battery Health SOH
+            min: 0
+            max: 100
+            severity:
+              green: 90
+              yellow: 80
+              red: 0

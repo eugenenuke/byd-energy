@@ -1,0 +1,62 @@
+# Home Assistant Dashboard - BYD Minimalist Tablet Panel
+# Required HACS Frontend Cards: bar-card (Optional)
+
+title: BYD Energy Panel
+views:
+  - title: Live Dashboard
+    path: minimal_overview
+    icon: mdi:tablet-dashboard
+    cards:
+      # Primary Compact Glance Grid (replicates high level indices)
+      - type: glance
+        title: Home Power States
+        show_name: true
+        show_state: true
+        entities:
+          - entity: sensor.total_pv_power
+            name: Solar active
+            icon: mdi:solar-power
+          - entity: sensor.household_load_power
+            name: Home Active
+            icon: mdi:home-lightning-bolt
+          - entity: sensor.battery_active_power
+            name: Battery active
+            icon: mdi:battery-sync
+          - entity: sensor.grid_meter_power
+            name: Grid active
+            icon: mdi:transmission-tower
+
+      # Compact bar metrics using standard bar-card if installed, or simple entity list if fallback
+      - type: entities
+        title: Battery Pack Energy
+        show_header_toggle: false
+        entities:
+          - entity: sensor.battery_state_of_charge
+            name: System SOC
+            icon: mdi:battery-50
+          - entity: sensor.battery_state_of_health
+            name: System SOH
+            icon: mdi:heart-pulse
+          - entity: sensor.battery_remaining_capacity
+            name: Remaining Ah
+          - entity: sensor.battery_cycle_count
+            name: Cycles Count
+            icon: mdi:sync
+
+      # Parameter Quick Settings Buttons
+      - type: entities
+        title: Inverter Mode & Limit Controllers
+        show_header_toggle: false
+        entities:
+          - entity: select.inverter_operating_mode
+            name: Operating Mode
+          - entity: number.battery_discharge_stop_floor
+            name: Min Discharge floor (minSoc)
+          - entity: number.feed_in_stop_soc
+            name: Feed-in threshold (minGrEle)
+          - entity: number.battery_charge_stop_ceiling
+            name: Max Charge ceiling (maxSoc)
+          - entity: switch.inverter_remote_power
+            name: Inverter Power Switch
+          - entity: switch.battery_storage_system_enabled
+            name: Battery Backup Enable

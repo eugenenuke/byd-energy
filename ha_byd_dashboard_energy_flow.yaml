@@ -1,0 +1,56 @@
+# Home Assistant Dashboard - BYD Energy Flow & Financial ROI Edition
+# Uses Home Assistant native energy statistics and price entities tracking
+
+title: BYD Energy ROI & Flow
+views:
+  - title: Cost Control
+    path: roi_financial
+    icon: mdi:cash-multiple
+    cards:
+      # Daily Financial summary grid (replicates cost-effective ROI metrics)
+      - type: grid
+        title: Daily Energy Balancing (kWh)
+        columns: 2
+        square: false
+        cards:
+          - type: entity
+            entity: sensor.daily_pv_generation
+            name: Daily Solar Yield
+            icon: mdi:solar-power
+          - type: entity
+            entity: sensor.daily_household_consumption
+            name: Daily Load Consumption
+            icon: mdi:home-lightning-bolt
+          - type: entity
+            entity: sensor.daily_grid_import
+            name: Daily Grid Import
+            icon: mdi:transmission-tower-import
+          - type: entity
+            entity: sensor.daily_grid_export
+            name: Daily Grid Export
+            icon: mdi:transmission-tower-export
+
+      # Battery daily throughput metrics
+      - type: entities
+        title: Daily Battery Storage Yield
+        show_header_toggle: false
+        entities:
+          - entity: sensor.daily_battery_charged_energy
+            name: Charged Energy Today
+            icon: mdi:battery-arrow-up
+          - entity: sensor.daily_battery_discharged_energy
+            name: Discharged Energy Today
+            icon: mdi:battery-arrow-down
+          - entity: sensor.battery_state_of_charge
+            name: Battery SOC State
+            icon: mdi:battery-50
+
+      # Cost helper template entities
+      - type: entities
+        title: Tariffs & Cost Monitoring
+        show_header_toggle: false
+        entities:
+          # Displays dynamic ToU pricing sensor helper configured in troubleshooting docs
+          - entity: sensor.electricity_tariff_price
+            name: Active Energy Price rate
+            icon: mdi:currency-eur

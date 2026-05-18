@@ -1,0 +1,62 @@
+# Home Assistant Dashboard - BYD Deep-Dive Analytics Edition
+# Required HACS Frontend Cards: mini-graph-card, apexcharts-card
+
+title: BYD Solar & Battery Analytics
+views:
+  - title: String & Cell Analytics
+    path: analytics_details
+    icon: mdi:chart-bell-curve
+    cards:
+      # Sparkline trend for Solar generation using custom:mini-graph-card
+      - type: custom:mini-graph-card
+        entity: sensor.total_pv_power
+        name: Solar String Active Yield (24h)
+        icon: mdi:solar-power
+        hours_to_show: 24
+        points_per_hour: 4
+        line_color: "#ff9900"
+        fill: fade
+        show:
+          extrema: true
+
+      # Compact PV String live diagnostics card
+      - type: entities
+        title: PV MPPT String Voltages & Amps
+        show_header_toggle: false
+        entities:
+          - entity: sensor.pv1_string_voltage
+            name: String 1 DC Voltage
+          - entity: sensor.pv1_string_current
+            name: String 1 DC Current
+          - entity: sensor.pv2_string_voltage
+            name: String 2 DC Voltage
+          - entity: sensor.pv2_string_current
+            name: String 2 DC Current
+
+      # Sparkline trend for Battery active flow using custom:mini-graph-card
+      - type: custom:mini-graph-card
+        entity: sensor.battery_active_power
+        name: Battery Active Power Draw (24h)
+        icon: mdi:battery-sync
+        hours_to_show: 24
+        points_per_hour: 4
+        line_color: "#00ff88"
+        fill: fade
+        show:
+          extrema: true
+
+      # Battery pack BMS cells diagnostics card
+      - type: entities
+        title: BMS Cell-Level Telemetry
+        show_header_toggle: false
+        entities:
+          - entity: sensor.max_cell_voltage
+            name: Max Cell Voltage (BMS limit)
+          - entity: sensor.min_cell_voltage
+            name: Min Cell Voltage (BMS limit)
+          - entity: sensor.max_cell_temperature
+            name: Max Pack Temperature
+          - entity: sensor.min_cell_temperature
+            name: Min Pack Temperature
+          - entity: sensor.avg_cell_temperature
+            name: Average Pack Temperature

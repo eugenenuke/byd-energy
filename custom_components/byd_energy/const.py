@@ -42,6 +42,12 @@ ONLINE_STATE_MAP = {
     2: "Fault",
 }
 
+WORK_MODE_MAP = {
+    "0": "Self-use",
+    "1": "Feed-in Priority",
+    "2": "Backup",
+}
+
 # Sensor definitions: (name, device_class, state_class, unit, icon)
 SENSOR_DEFINITIONS = {
     # --- Realtime sys ---
@@ -118,6 +124,7 @@ SENSOR_DEFINITIONS = {
     # --- Informational / Static slow ---
     "qaTime": ("Installation Date", None, None, None, "mdi:calendar-check"),
     "grid_regulation": ("Grid Standard Regulation", None, None, None, "mdi:handshake"),
+    "grid_country": ("Grid Country Regulation", None, None, None, "mdi:earth"),
     "bms_current_version": ("BMS Firmware Version", None, None, None, "mdi:firmware"),
     "bms_latest_version": ("BMS Latest Available Firmware", None, None, None, "mdi:firmware"),
     "pcs_latest_version": ("Inverter Latest Available Firmware", None, None, None, "mdi:firmware"),
