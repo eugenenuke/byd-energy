@@ -6,10 +6,21 @@ import voluptuous as vol
 
 from homeassistant import config_entries
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
+from homeassistant.core import callback
 from homeassistant.helpers import aiohttp_client
 
 from .api import BydEnergyApiClient, BydEnergyAuthError
-from .const import CONF_PID, CONF_POLLING_INTERVAL, CONF_PRODUCT_TYPE, DEFAULT_POLLING_INTERVAL, DOMAIN
+from .const import (
+    CONF_PID,
+    CONF_POLLING_INTERVAL,
+    CONF_PRODUCT_TYPE,
+    DEFAULT_POLLING_INTERVAL,
+    DOMAIN,
+    CONF_MEDIUM_POLLING_INTERVAL,
+    DEFAULT_MEDIUM_POLLING_INTERVAL,
+    CONF_SLOW_POLLING_INTERVAL,
+    DEFAULT_SLOW_POLLING_INTERVAL,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -107,3 +118,59 @@ class BydEnergyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             data_schema=schema,
             errors=errors,
         )
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(
+        config_entry: config_entries.ConfigEntry,
+    ) -> config_entries.OptionsFlow:
+        """Create the options flow."""
+        return BydEnergyOptionsFlowHandler(config_entry)
+
+
+class BydEnergyOptionsFlowHandler(config_entries.OptionsFlow):
+    """Handle an options flow for BYD Energy."""
+
+    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+        """Initialize options flow."""
+        self.config_entry = config_entry
+
+    async def async_step_init(
+        self, user_input: Optional[Dict[str, Any]] = None
+    ) -> config_entries.FlowResult:
+        """Manage the options."""
+        if user_input is not None:
+            return self.async_create_entry(title="", data=user_input)
+
+        # Get active or default values
+        fast_val = self.config_entry.options.get(
+            CONF_POLLING_INTERVAL,
+            self.config_entry.data.get(CONF_POLLING_INTERVAL, DEFAULT_POLLING_INTERVAL)
+        )
+        medium_val = self.config_entry.options.get(
+            CONF_MEDIUM_POLLING_INTERVAL,
+            self.config_entry.data.get(CONF_MEDIUM_POLLING_INTERVAL, DEFAULT_MEDIUM_POLLING_INTERVAL)
+        )
+        slow_val = self.config_entry.options.get(
+            CONF_SLOW_POLLING_INTERVAL,
+            self.config_entry.data.get(CONF_SLOW_POLLING_INTERVAL, DEFAULT_SLOW_POLLING_INTERVAL)
+        )
+
+        schema = vol.Schema(
+            {
+                vol.Optional(
+                    CONF_POLLING_INTERVAL,
+                    default=fast_val,
+                ): vol.All(int, vol.Range(min=5, max=300)),
+                vol.Optional(
+                    CONF_MEDIUM_POLLING_INTERVAL,
+                    default=medium_val,
+                ): vol.All(int, vol.Range(min=60, max=3600)),
+                vol.Optional(
+                    CONF_SLOW_POLLING_INTERVAL,
+                    default=slow_val,
+                ): vol.All(int, vol.Range(min=3600, max=86400)),
+            }
+        )
+
+        return self.async_show_form(step_id="init", data_schema=schema)

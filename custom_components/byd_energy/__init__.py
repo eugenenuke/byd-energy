@@ -13,7 +13,17 @@ from homeassistant.helpers import aiohttp_client
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import BydEnergyApiClient, BydEnergyAuthError, BydEnergyApiClientError
-from .const import CONF_PID, CONF_POLLING_INTERVAL, CONF_PRODUCT_TYPE, DEFAULT_POLLING_INTERVAL, DOMAIN
+from .const import (
+    CONF_PID,
+    CONF_POLLING_INTERVAL,
+    CONF_PRODUCT_TYPE,
+    DEFAULT_POLLING_INTERVAL,
+    DOMAIN,
+    CONF_MEDIUM_POLLING_INTERVAL,
+    DEFAULT_MEDIUM_POLLING_INTERVAL,
+    CONF_SLOW_POLLING_INTERVAL,
+    DEFAULT_SLOW_POLLING_INTERVAL,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -34,7 +44,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     password = entry.data[CONF_PASSWORD]
     pid = entry.data[CONF_PID]
     product_type = entry.data.get(CONF_PRODUCT_TYPE, "lixia")
-    polling_interval = entry.data.get(CONF_POLLING_INTERVAL, DEFAULT_POLLING_INTERVAL)
+    polling_interval = entry.options.get(
+        CONF_POLLING_INTERVAL, entry.data.get(CONF_POLLING_INTERVAL, DEFAULT_POLLING_INTERVAL)
+    )
+    medium_polling_interval = entry.options.get(
+        CONF_MEDIUM_POLLING_INTERVAL, entry.data.get(CONF_MEDIUM_POLLING_INTERVAL, DEFAULT_MEDIUM_POLLING_INTERVAL)
+    )
+    slow_polling_interval = entry.options.get(
+        CONF_SLOW_POLLING_INTERVAL, entry.data.get(CONF_SLOW_POLLING_INTERVAL, DEFAULT_SLOW_POLLING_INTERVAL)
+    )
 
     # Persistent token storage inside config entry data
     access_token = entry.data.get("access_token")
@@ -43,15 +61,32 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     session = aiohttp_client.async_get_clientsession(hass)
     client = BydEnergyApiClient(username, password, session, access_token, refresh_token)
 
-    coordinator = BydEnergyDataUpdateCoordinator(hass, client, pid, product_type, polling_interval, entry)
+    coordinator = BydEnergyDataUpdateCoordinator(
+        hass,
+        client,
+        pid,
+        product_type,
+        polling_interval,
+        medium_polling_interval,
+        slow_polling_interval,
+        entry,
+    )
 
     await coordinator.async_config_entry_first_refresh()
 
     hass.data[DOMAIN][entry.entry_id] = coordinator
 
+    # Register options update listener
+    entry.async_on_unload(entry.add_update_listener(async_update_options))
+
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     return True
+
+
+async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Handle options update by reloading the entry."""
+    await hass.config_entries.async_reload(entry.entry_id)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -71,6 +106,8 @@ class BydEnergyDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
         pid: str,
         product_type: str,
         polling_interval: int,
+        medium_polling_interval: int,
+        slow_polling_interval: int,
         entry: ConfigEntry,
     ) -> None:
         """Initialize data update coordinator."""
@@ -83,6 +120,8 @@ class BydEnergyDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
         self.client = client
         self.pid = pid
         self.product_type = product_type
+        self.medium_polling_interval = medium_polling_interval
+        self.slow_polling_interval = slow_polling_interval
         self._entry = entry
         self._last_medium_fetch = 0.0
         self._last_slow_fetch = 0.0
@@ -121,8 +160,8 @@ class BydEnergyDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
             "online_state": self.client.get_online_state(self.pid),
         }
 
-        # 2. Medium Loop (every 5 minutes / 300 seconds: daily energy totals, eeprom, cell diagnostics)
-        do_medium = (self.data is None) or (now - self._last_medium_fetch >= 300)
+        # 2. Medium Loop (daily energy totals, eeprom, cell diagnostics)
+        do_medium = (self.data is None) or (now - self._last_medium_fetch >= self.medium_polling_interval)
         if do_medium:
             tasks.update({
                 "pcs": self.client.get_realtime_data_list(self.product_type, self.pid, "pcs"),
@@ -135,8 +174,8 @@ class BydEnergyDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 "eeprom_settings": self.client.get_device_eeprom_settings(self.product_type, self.pid),
             })
 
-        # 3. Slow Loop (every 12 hours / 43200 seconds: static installation info, grid regulatory standards, available OTA firmware)
-        do_slow = (self.data is None) or (now - self._last_slow_fetch >= 43200)
+        # 3. Slow Loop (static installation info, grid regulatory standards, available OTA firmware)
+        do_slow = (self.data is None) or (now - self._last_slow_fetch >= self.slow_polling_interval)
         if do_slow:
             tasks.update({
                 "base_settings": self.client.get_device_base_settings(self.product_type, self.pid),
