@@ -6,7 +6,14 @@ This guide details troubleshooting steps for common issues and provides template
 
 ## ⚠️ Safety Lock for Advanced Controls
 
-By default, the integration implements a safety lock on potentially critical write controls (e.g., **Inverter Remote Power** and **Battery Storage System Enabled**). This prevents accidental shutoffs, grid drops, or system-wide battery disables.
+> [!WARNING]
+> **UNTESTED CONTROLS & LIABILITY DISCLAIMER**
+>
+> High-risk write controls—specifically **"Inverter Remote Power"** (`remoteOnOff` / Power On/Off) and **"Battery Storage System Enabled"** (`EPSEnable` / Battery Enable)—**have not been tested on physical hardware**. The implementation of these controls is based strictly on reverse-engineered official mobile application bundles.
+>
+> Activating these controls carries a risk of accidental electrical blackouts, physical battery tower offline drops, or grid regulation non-compliance. The authors accept no responsibility or liability for any hardware damage, power drops, or financial loss. Use them at your own risk.
+
+By default, the integration implements a safety lock on these potentially critical write controls to prevent accidental triggers.
 
 When the safety lock is active:
 * Toggle switches for these controls remain fully visible on your dashboard.
