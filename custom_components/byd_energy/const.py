@@ -115,12 +115,12 @@ SENSOR_DEFINITIONS = {
     # --- Daily/Total Stats ---
     "elecDailyBuy": ("Daily Grid Import", SensorDeviceClass.ENERGY, SensorStateClass.TOTAL_INCREASING, UnitOfEnergy.KILO_WATT_HOUR, "mdi:transmission-tower-import"),
     "elecDailySale": ("Daily Grid Export", SensorDeviceClass.ENERGY, SensorStateClass.TOTAL_INCREASING, UnitOfEnergy.KILO_WATT_HOUR, "mdi:transmission-tower-export"),
-    "bmsDailyCharge": ("Daily Battery Charged Energy", SensorDeviceClass.ENERGY, SensorStateClass.TOTAL_INCREASING, UnitOfEnergy.KILO_WATT_HOUR, "mdi:battery-arrow-up"),
-    "bmsDailyDisCharge": ("Daily Battery Discharged Energy", SensorDeviceClass.ENERGY, SensorStateClass.TOTAL_INCREASING, UnitOfEnergy.KILO_WATT_HOUR, "mdi:battery-arrow-down"),
+    "bmsDailyCharge": ("Daily Battery Discharged Energy", SensorDeviceClass.ENERGY, SensorStateClass.TOTAL_INCREASING, UnitOfEnergy.KILO_WATT_HOUR, "mdi:battery-arrow-down"),
+    "bmsDailyDisCharge": ("Daily Battery Charged Energy", SensorDeviceClass.ENERGY, SensorStateClass.TOTAL_INCREASING, UnitOfEnergy.KILO_WATT_HOUR, "mdi:battery-arrow-up"),
     "elecTotalBuy": ("Lifetime Grid Import", SensorDeviceClass.ENERGY, SensorStateClass.TOTAL_INCREASING, UnitOfEnergy.KILO_WATT_HOUR, "mdi:transmission-tower-import"),
     "elecTotalSale": ("Lifetime Grid Export", SensorDeviceClass.ENERGY, SensorStateClass.TOTAL_INCREASING, UnitOfEnergy.KILO_WATT_HOUR, "mdi:transmission-tower-export"),
-    "bmsTotalCharge": ("Lifetime Battery Charged Energy", SensorDeviceClass.ENERGY, SensorStateClass.TOTAL_INCREASING, UnitOfEnergy.KILO_WATT_HOUR, "mdi:battery-arrow-up"),
-    "bmsTotalDisCharge": ("Lifetime Battery Discharged Energy", SensorDeviceClass.ENERGY, SensorStateClass.TOTAL_INCREASING, UnitOfEnergy.KILO_WATT_HOUR, "mdi:battery-arrow-down"),
+    "bmsTotalCharge": ("Lifetime Battery Discharged Energy", SensorDeviceClass.ENERGY, SensorStateClass.TOTAL_INCREASING, UnitOfEnergy.KILO_WATT_HOUR, "mdi:battery-arrow-down"),
+    "bmsTotalDisCharge": ("Lifetime Battery Charged Energy", SensorDeviceClass.ENERGY, SensorStateClass.TOTAL_INCREASING, UnitOfEnergy.KILO_WATT_HOUR, "mdi:battery-arrow-up"),
 
     # --- Informational / Static slow ---
     "qaTime": ("Installation Date", None, None, None, "mdi:calendar-check"),
