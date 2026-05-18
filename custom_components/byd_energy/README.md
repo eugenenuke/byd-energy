@@ -1,6 +1,6 @@
 # BYD Energy Home Assistant Custom Component
 
-[![GitHub Release](https://img.shields.io/github/release/eugenenuke/byd_energy.svg)](https://github.com/eugenenuke/byd_energy/releases)
+[![GitHub Release](https://img.shields.io/github/release/eugenenuke/byd-energy.svg)](https://github.com/eugenenuke/byd-energy/releases)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
 

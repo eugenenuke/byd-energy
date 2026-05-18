@@ -18,7 +18,7 @@ This guide provides step-by-step instructions to install, configure, and registe
 Once HACS is installed on Home Assistant:
 1. Navigate to **HACS** in your Home Assistant sidebar.
 2. Click the **three dots** in the top-right corner and select **Custom repositories**.
-3. Paste your GitHub repository URL: `https://github.com/eugenenuke/byd_energy`.
+3. Paste your GitHub repository URL: `https://github.com/eugenenuke/byd-energy`.
 4. Select Category: **Integration** and click **Add**.
 5. The integration is now available for UI-driven installation and update checking directly from the HACS store.
 

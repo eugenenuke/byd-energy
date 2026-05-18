@@ -4,7 +4,7 @@
   "codeowners": ["@eugenenuke"],
   "config_flow": true,
   "dependencies": [],
-  "documentation": "https://github.com/eugenenuke/byd_energy",
+  "documentation": "https://github.com/eugenenuke/byd-energy",
   "iot_class": "cloud_polling",
   "requirements": ["pycryptodome>=3.18.0"],
   "version": "0.3.0-beta"
