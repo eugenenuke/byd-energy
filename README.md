@@ -3,6 +3,7 @@
 [![GitHub Release](https://img.shields.io/github/release/eugenenuke/byd-energy.svg)](https://github.com/eugenenuke/byd-energy/releases)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.homeassistant.io/badges/hacs_repository.svg)](https://my.homeassistant.io/redirect/hacs_repository/?owner=eugenenuke&repository=byd-energy&category=integration)
 
 > [!WARNING]
 > **UNTESTED HARDWARE CONTROLS & LIABILITY DISCLAIMER**
