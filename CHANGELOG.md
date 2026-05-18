@@ -4,6 +4,15 @@ All notable changes to the BYD Energy Home Assistant custom component will be do
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.2-beta] - 2026-05-18
+
+### Added
+- **HACS Brands CDN Logo PR Guide**: Created a step-by-step PR setup guide inside `scratch/hacs_brand_registration.md` to register the custom domain as an alias to reuse the official red BYD logo globally in HACS.
+
+### Fixed
+- **Energy Dashboard Calculated Consumption**: Swapped the daily and total battery charged/discharged energy registers (`bmsDailyCharge` / `bmsDailyDisCharge` and `bmsTotalCharge` / `bmsTotalDisCharge`) to align correctly with Home Assistant's calculations, resolving the `19 kW` consumption spike at 5:00 AM during grid charging.
+- **My Home Assistant Redirect Badge**: Corrected the spelling typo in `README.md` from `my.homeassistant.io` to `my.home-assistant.io` to restore the redirect badge.
+
 ## [0.3.1-beta] - 2026-05-18
 
 ### Added
