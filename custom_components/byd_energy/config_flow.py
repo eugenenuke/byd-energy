@@ -20,6 +20,7 @@ from .const import (
     DEFAULT_MEDIUM_POLLING_INTERVAL,
     CONF_SLOW_POLLING_INTERVAL,
     DEFAULT_SLOW_POLLING_INTERVAL,
+    CONF_ENABLE_ADVANCED_CONTROLS,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -155,6 +156,10 @@ class BydEnergyOptionsFlowHandler(config_entries.OptionsFlow):
             CONF_SLOW_POLLING_INTERVAL,
             self.config_entry.data.get(CONF_SLOW_POLLING_INTERVAL, DEFAULT_SLOW_POLLING_INTERVAL)
         )
+        advanced_val = self.config_entry.options.get(
+            CONF_ENABLE_ADVANCED_CONTROLS,
+            self.config_entry.data.get(CONF_ENABLE_ADVANCED_CONTROLS, False)
+        )
 
         schema = vol.Schema(
             {
@@ -170,6 +175,10 @@ class BydEnergyOptionsFlowHandler(config_entries.OptionsFlow):
                     CONF_SLOW_POLLING_INTERVAL,
                     default=slow_val,
                 ): vol.All(int, vol.Range(min=3600, max=86400)),
+                vol.Optional(
+                    CONF_ENABLE_ADVANCED_CONTROLS,
+                    default=advanced_val,
+                ): bool,
             }
         )
 

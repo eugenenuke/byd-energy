@@ -5,11 +5,12 @@ from typing import Any, Dict, Optional
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN
+from .const import DOMAIN, CONF_ENABLE_ADVANCED_CONTROLS
 from .__init__ import BydEnergyDataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -61,6 +62,11 @@ class BydEnergySwitch(CoordinatorEntity[BydEnergyDataUpdateCoordinator], SwitchE
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the switch on."""
+        if self._key in ["remoteOnOff", "EPSEnable"]:
+            if not self.coordinator._entry.options.get(CONF_ENABLE_ADVANCED_CONTROLS, False):
+                _LOGGER.warning("Attempted to toggle advanced control %s while safety lock is active.", self._key)
+                raise HomeAssistantError("Advanced controls are locked. Enable them in the integration options flow first.")
+
         success = await self.coordinator.client.update_device_setting(self.coordinator.pid, self._key, 1)
         if success:
             if self.coordinator.data and "eeprom_settings" in self.coordinator.data:
@@ -70,6 +76,11 @@ class BydEnergySwitch(CoordinatorEntity[BydEnergyDataUpdateCoordinator], SwitchE
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the switch off."""
+        if self._key in ["remoteOnOff", "EPSEnable"]:
+            if not self.coordinator._entry.options.get(CONF_ENABLE_ADVANCED_CONTROLS, False):
+                _LOGGER.warning("Attempted to toggle advanced control %s while safety lock is active.", self._key)
+                raise HomeAssistantError("Advanced controls are locked. Enable them in the integration options flow first.")
+
         success = await self.coordinator.client.update_device_setting(self.coordinator.pid, self._key, 0)
         if success:
             if self.coordinator.data and "eeprom_settings" in self.coordinator.data:
