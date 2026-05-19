@@ -16,6 +16,7 @@ views:
         min_flow_rate: 0.75
         max_flow_rate: 4.0
         watt_threshold: 1000
+        clickable_entities: true
         entities:
           # PV String input
           solar:
@@ -28,18 +29,19 @@ views:
             entity: sensor.household_load_power
             name: Household Load
             icon: mdi:home-lightning-bolt
+            override_state: true
           # Grid / Smart Meter 
           grid:
             entity: sensor.grid_meter_power
             name: Grid Meter
             display_zero: true
-            invert_state: true  # Negative indicates grid feed-in
           # Battery Pack
           battery:
             entity: sensor.battery_active_power
             state_of_charge: sensor.battery_state_of_charge
             name: Battery storage
             display_zero: true
+            invert_state: true
 
       # Daily Energy Summaries
       - type: grid
@@ -84,6 +86,7 @@ views:
               green: 20
               yellow: 10
               red: 0
+
           - type: gauge
             entity: sensor.battery_state_of_health
             name: Battery SOH (Health)
@@ -119,6 +122,14 @@ views:
             name: System SOC
           - entity: sensor.battery_state_of_health
             name: System SOH
+          - entity: sensor.battery_active_power
+            name: Battery Storage Flow
+            card_mod:
+              style: |
+                :host {
+                  --card-mod-icon: {% if states('sensor.battery_active_power')|float(0) > 10 %} mdi:arrow-up-bold-circle {% elif states('sensor.battery_active_power')|float(0) < -10 %} mdi:arrow-down-bold-circle {% else %} mdi:battery {% endif %};
+                  --paper-item-icon-color: {% if states('sensor.battery_active_power')|float(0) > 10 %} #ff4d4d {% elif states('sensor.battery_active_power')|float(0) < -10 %} #00cc66 {% else %} #808080 {% endif %};
+                }
           - entity: sensor.battery_cycle_count
             name: Battery Life Cycle Count
             icon: mdi:sync
@@ -216,27 +227,50 @@ views:
     path: settings
     icon: mdi:cog
     cards:
-      # Current System State Context Header (replicates top of settings screen)
-      - type: glance
-        title: Current Battery & System State
-        show_state: true
+      # Grid Export Discharging Slots (Feed-in Priority schedules)
+      - type: entities
+        title: Grid Export Discharging Slots (Feed-in Priority)
+        show_header_toggle: false
         entities:
-          - entity: sensor.battery_state_of_charge
-            name: Battery Charge
-            icon: mdi:battery
-          - entity: sensor.battery_active_power
-            name: Power Flow
-            icon: mdi:swap-vertical
-          - entity: select.inverter_operating_mode
-            name: Active Mode
-            icon: mdi:state-machine
+          - entity: switch.grid_export_discharge_slot_1_feed_in
+            name: Enable Discharge Slot 1
+          - entity: time.grid_export_discharge_slot_1_start_feed_in
+            name: Slot 1 Start Time
+          - entity: time.grid_export_discharge_slot_1_end_feed_in
+            name: Slot 1 End Time
+          - type: divider
+          - entity: switch.grid_export_discharge_slot_2_feed_in
+            name: Enable Discharge Slot 2
+          - entity: time.grid_export_discharge_slot_2_start_feed_in
+            name: Slot 2 Start Time
+          - entity: time.grid_export_discharge_slot_2_end_feed_in
+            name: Slot 2 End Time
+
+      # Forced Time Slot schedules
+      - type: entities
+        title: Forced Grid Charging Slots (Backup)
+        show_header_toggle: false
+        entities:
+          - entity: switch.forced_grid_charge_slot_1_backup
+            name: Enable Forced Charge Slot 1
+          - entity: time.forced_grid_charge_slot_1_start_backup
+            name: Slot 1 Start Time
+          - entity: time.forced_grid_charge_slot_1_end_backup
+            name: Slot 1 End Time
+          - type: divider
+          - entity: switch.forced_grid_charge_slot_2_backup
+            name: Enable Forced Charge Slot 2
+          - entity: time.forced_grid_charge_slot_2_start_backup
+            name: Slot 2 Start Time
+          - entity: time.forced_grid_charge_slot_2_end_backup
+            name: Slot 2 End Time
 
       # Mode Toggles and Dynamic Dropdowns
       - type: entities
         title: Inverter Parameter Settings
         show_header_toggle: false
         entities:
-          # Operating Mode Select (New Platform!)
+          # Operating Mode Select
           - entity: select.inverter_operating_mode
             name: Operating Mode
             icon: mdi:state-machine
@@ -249,55 +283,12 @@ views:
             name: Battery Enable
             icon: mdi:battery-check
           # Battery Charge & Discharge slider bounds
-          - entity: number.battery_discharge_stop_floor
+          - entity: number.grid_export_stop_soc_feed_in
             name: Battery Discharge Stop Floor (minSoc)
           - entity: number.feed_in_stop_soc
             name: Feed-in Stop SOC (minGrEle)
-          - entity: number.battery_charge_stop_ceiling
+          - entity: number.forced_grid_charge_max_target_soc_backup
             name: Battery Charge Stop Ceiling (maxSoc)
-          # Peak Power String Ratings
-          - entity: number.pv1_string_peak_power_limit
-            name: MPPT String 1 Rating
-          - entity: number.pv2_string_peak_power_limit
-            name: MPPT String 2 Rating
-
-      # Grid Export Discharging Slots (Feed-in Priority schedules)
-      - type: entities
-        title: Grid Export Discharging Slots (Feed-in Priority)
-        show_header_toggle: false
-        entities:
-          - entity: switch.grid_export_discharge_slot_1_feed_in
-            name: Enable Discharge Slot 1
-          - entity: text.grid_export_discharge_slot_1_start_feed_in
-            name: Slot 1 Start Time
-          - entity: text.grid_export_discharge_slot_1_end_feed_in
-            name: Slot 1 End Time
-          - type: divider
-          - entity: switch.grid_export_discharge_slot_2_feed_in
-            name: Enable Discharge Slot 2
-          - entity: text.grid_export_discharge_slot_2_start_feed_in
-            name: Slot 2 Start Time
-          - entity: text.grid_export_discharge_slot_2_end_feed_in
-            name: Slot 2 End Time
-
-      # Forced Time Slot schedules
-      - type: entities
-        title: Forced Grid Charging Slots (Backup)
-        show_header_toggle: false
-        entities:
-          - entity: switch.forced_grid_charge_slot_1_backup
-            name: Enable Forced Charge Slot 1
-          - entity: text.forced_grid_charge_slot_1_start_backup
-            name: Slot 1 Start Time
-          - entity: text.forced_grid_charge_slot_1_end_backup
-            name: Slot 1 End Time
-          - type: divider
-          - entity: switch.forced_grid_charge_slot_2_backup
-            name: Enable Forced Charge Slot 2
-          - entity: text.forced_grid_charge_slot_2_start_backup
-            name: Slot 2 Start Time
-          - entity: text.forced_grid_charge_slot_2_end_backup
-            name: Slot 2 End Time
 
   # ==========================================
   # TAB 5: Advanced Inverter Telemetry
