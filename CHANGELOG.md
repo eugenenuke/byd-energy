@@ -4,6 +4,17 @@ All notable changes to the BYD Energy Home Assistant custom component will be do
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.3-beta] - 2026-05-19
+
+### Added
+- **Native Lovelace Time Picker Platform (`time.py`)**: Migrated the 8 time slot configuration registers from the `text` platform to the native Home Assistant **`time`** platform. This natively enables standard HTML5 touch-friendly time selector dials without requiring custom HACS plugins or helper automations, and formats time strings bi-directionally (`HH:MMZ`) on the fly.
+- **Lovelace Clickable Flow Cards**: Configured card-level `clickable_entities: true` on the main animated power flow diagram to enable click-to-open history popups for Solar, Grid, and Battery bubbles.
+- **Dynamic Battery Flow Icon Overrides**: Styled the active power row using dynamic `card-mod` CSS variables inside the `:host` block, automatically rendering a red up-arrow on discharge and a green down-arrow on charge.
+
+### Fixed
+- **Restored Clean Friendly Names**: Reverted yesterday's daily/total battery energy sensor name swaps to naturally align friendly names and icons with their entity ID keys, resolving naming confusion inside the HA Energy Dashboard configuration dropdowns.
+- **Cleaned Settings Tab Layout**: Rearranged cards inside the Settings & Controls tab to place parameter controls at the bottom, removed redundant glance cards/MPPT peak limits, and updated legacy database-locked entity IDs.
+
 ## [0.3.2-beta] - 2026-05-18
 
 ### Added

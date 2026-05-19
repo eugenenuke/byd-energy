@@ -20,13 +20,23 @@ To give you maximum flexibility, five different dashboard designs are available 
 
 ## 🔌 Frontend Card Dependencies (HACS)
 
-While the integration works completely out of the box with standard Home Assistant cards, installing these popular community cards via HACS is recommended for a premium experience:
+While the integration works out of the box with standard Home Assistant cards, installing these popular community cards via HACS (Home Assistant Community Store) is recommended to replicate the visual aesthetics of the official BYD app:
 
-1. **`power-flow-card-plus`**: Renders a gorgeous real-time power flow diagram with animated moving dots showing exact power direction and speed (Tab 1 in most layouts).
-2. **`card-mod`**: Allows custom CSS injection directly inside Lovelace cards to achieve premium glassmorphic borders, blurs, and shadow glows.
-3. **`apexcharts-card`**: Renders advanced historical graphs, enabling multi-duration selection tabs (Day/Month/Year).
-4. **`bar-card`**: Translates numeric state limits into clean horizontal progress bars.
-5. **`mini-graph-card`**: Elegant sparklines and minimal real-time trend graphs.
+1.  **`power-flow-card-plus`**: Renders the live power flow diagram with animated dots showing power direction.
+    *   **GitHub Repository**: [flixlix/power-flow-card-plus](https://github.com/flixlix/power-flow-card-plus)
+    *   **One-Click Install**: [![Open HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=flixlix&repository=power-flow-card-plus&category=plugin)
+2.  **`card-mod`**: Injects custom CSS to achieve glassmorphic borders, background blurs, and glows.
+    *   **GitHub Repository**: [thomasloven/lovelace-card-mod](https://github.com/thomasloven/lovelace-card-mod)
+    *   **One-Click Install**: [![Open HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=thomasloven&repository=lovelace-card-mod&category=plugin)
+3.  **`apexcharts-card`**: Renders the multi-duration real-time power convergence charts.
+    *   **GitHub Repository**: [RomRider/apexcharts-card](https://github.com/RomRider/apexcharts-card)
+    *   **One-Click Install**: [![Open HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=RomRider&repository=apexcharts-card&category=plugin)
+4.  **`mini-graph-card`**: Generates sparklines and real-time trend graphs.
+    *   **GitHub Repository**: [kalkih/mini-graph-card](https://github.com/kalkih/mini-graph-card)
+    *   **One-Click Install**: [![Open HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=kalkih&repository=mini-graph-card&category=plugin)
+
+> [!NOTE]
+> **Visual Progress Bars & Sliders**: Home Assistant natively supports beautiful visual progress bars and sliders out of the box using the built-in **`tile`** card with **`slider`** features! Installing deprecated custom card helpers like `bar-card` is no longer necessary or recommended.
 
 ---
 
