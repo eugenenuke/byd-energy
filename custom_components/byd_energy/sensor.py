@@ -72,6 +72,8 @@ class BydEnergySensor(CoordinatorEntity[BydEnergyDataUpdateCoordinator], SensorE
             val = data["sensors"].get(self._key)
         elif self._key == "qaTime":
             val = data.get("base_settings", {}).get("qaTime")
+        elif self._key == "inverter_sn":
+            val = self.coordinator.pid
         elif self._key == "grid_regulation":
             val = data.get("grid_settings", {}).get("Standard")
         elif self._key == "grid_country":

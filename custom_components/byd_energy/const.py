@@ -126,6 +126,7 @@ SENSOR_DEFINITIONS = {
 
     # --- Informational / Static slow ---
     "qaTime": ("Installation Date", None, None, None, "mdi:calendar-check"),
+    "inverter_sn": ("Inverter Serial Number", None, None, None, "mdi:barcode-scan"),
     "grid_regulation": ("Grid Standard Regulation", None, None, None, "mdi:handshake"),
     "grid_country": ("Grid Country Regulation", None, None, None, "mdi:earth"),
     "bms_current_version": ("BMS Firmware Version", None, None, None, "mdi:firmware"),
