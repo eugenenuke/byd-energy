@@ -4,6 +4,17 @@ All notable changes to the BYD Energy Home Assistant custom component will be do
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0-beta] - 2026-05-19
+
+### Added
+- **Hour and Minute Split Dropdowns**: Added 16 new virtual select dropdown entities representing Hour and Minute splits for all 8 inverter scheduling registers, enabling touch-friendly selection in Lovelace.
+- **Upgrade File Sizes**: Exposed the upgrade file size dynamically as an attribute on all latest available firmware sensors.
+- **Unified Firmware Update Available Sensor**: Added a binary sensor indicating if a newer firmware version is available for any inverter or battery component, with custom detailed attributes.
+- **Self-Healing Sidebar Notifications**: Added automatic persistent notifications that aggregate all pending firmware updates and dynamically dismiss themselves once all components are up to date.
+
+### Changed
+- **Unified Cloud Firmware Polling**: Consolidated 6 individual slow HTTP requests into a single unified cloud query, optimizing network bandwidth and API performance.
+
 ## [0.3.4-beta] - 2026-05-19
 
 ### Fixed
