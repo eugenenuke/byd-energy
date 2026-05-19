@@ -338,6 +338,8 @@ class BydEnergyDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
                                 data["wifi_module_latest_size"] = fsize_str
 
                 self._last_slow_fetch = now
+                # Trigger firmware update check and update native Home Assistant sidebar notifications
+                self._async_check_firmware_notifications(data)
 
             return data
 
@@ -349,3 +351,113 @@ class BydEnergyDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
             raise UpdateFailed(f"Error communicating with BYD Energy API: {err}") from err
         except Exception as err:
             raise UpdateFailed(f"Unexpected error updating BYD Energy: {err}") from err
+
+    def _is_newer(self, installed: Optional[str], latest: Optional[str]) -> bool:
+        """Return True if latest version is strictly newer than installed version."""
+        if not installed or not latest or latest == "unknown" or installed == "unknown":
+            return False
+        inst = str(installed).replace("V", "").replace("v", "").strip()
+        lat = str(latest).replace("V", "").replace("v", "").strip()
+        if inst == lat:
+            return False
+        try:
+            inst_parts = [int(x) for x in re.findall(r"\d+", inst)]
+            lat_parts = [int(x) for x in re.findall(r"\d+", lat)]
+            for i in range(max(len(inst_parts), len(lat_parts))):
+                inst_val = inst_parts[i] if i < len(inst_parts) else 0
+                lat_val = lat_parts[i] if i < len(lat_parts) else 0
+                if lat_val > inst_val:
+                    return True
+                if lat_val < inst_val:
+                    return False
+        except Exception:
+            pass
+        return False
+
+    def _async_check_firmware_notifications(self, data: Dict[str, Any]) -> None:
+        """Aggregates and triggers/dismisses HA persistent notifications for pending firmware upgrades."""
+        # 1. Fetch current and latest versions from cache
+        arm_curr = data.get("sensors", {}).get("armV", "V326")
+        arm_latest = data.get("pcs_latest_version")
+        arm_size = data.get("pcs_latest_size")
+
+        dsp1_curr = data.get("sensors", {}).get("mdspV", "V505")
+        dsp1_latest = data.get("dsp1_latest_version")
+        dsp1_size = data.get("dsp1_latest_size")
+
+        dsp2_curr = data.get("sensors", {}).get("fdspV", "V103")
+        dsp2_latest = data.get("dsp2_latest_version")
+        dsp2_size = data.get("dsp2_latest_size")
+
+        bms_curr = data.get("bms_current_version")
+        bms_latest = data.get("bms_latest_version")
+        bms_size = data.get("bms_latest_size")
+
+        mcu1_curr = data.get("wifi_module_current_version")
+        mcu1_latest = data.get("wifi_module_latest_version")
+        mcu1_size = data.get("wifi_module_latest_size")
+
+        mcu2_curr = data.get("f527_current_version")
+        mcu2_latest = data.get("f527_latest_version")
+        mcu2_size = data.get("f527_latest_size")
+
+        # 2. Check pending updates (only for active, non-null elements)
+        updates = []
+        
+        # Inverter Subsystem
+        inverter_updates = []
+        if arm_curr and arm_latest and self._is_newer(arm_curr, arm_latest):
+            inverter_updates.append(f"*   **ARM**: `{arm_curr}` ➔ **`{arm_latest}`** ({arm_size or 'unknown size'})")
+        if dsp1_curr and dsp1_latest and self._is_newer(dsp1_curr, dsp1_latest):
+            inverter_updates.append(f"*   **DSP1**: `{dsp1_curr}` ➔ **`{dsp1_latest}`** ({dsp1_size or 'unknown size'})")
+        if dsp2_curr and dsp2_latest and self._is_newer(dsp2_curr, dsp2_latest):
+            inverter_updates.append(f"*   **DSP2**: `{dsp2_curr}` ➔ **`{dsp2_latest}`** ({dsp2_size or 'unknown size'})")
+
+        if inverter_updates:
+            updates.append(f"### 🎛️ Power-Box SH5K (Inverter)\n" + "\n".join(inverter_updates))
+
+        # Battery Subsystem (skip if battery is not present)
+        if bms_curr and bms_latest and self._is_newer(bms_curr, bms_latest):
+            updates.append(f"### 🔋 HVE Tower (Battery BMS)\n*   **BMS**: `{bms_curr}` ➔ **`{bms_latest}`** ({bms_size or 'unknown size'})")
+
+        # WiFi/LAN Module Subsystem (skip if WiFi info is missing)
+        wifi_updates = []
+        if mcu1_curr and mcu1_latest and self._is_newer(mcu1_curr, mcu1_latest):
+            wifi_updates.append(f"*   **MCU 1** (wifiModule): `{mcu1_curr}` ➔ **`{mcu1_latest}`** ({mcu1_size or 'unknown size'})")
+        if mcu2_curr and mcu2_latest and self._is_newer(mcu2_curr, mcu2_latest):
+            wifi_updates.append(f"*   **MCU 2** (f527): `{mcu2_curr}` ➔ **`{mcu2_latest}`** ({mcu2_size or 'unknown size'})")
+
+        if wifi_updates:
+            updates.append(f"### 📶 Smart WiFi/LAN Module\n" + "\n".join(wifi_updates))
+
+        notification_id = f"byd_energy_{self.pid}_update"
+
+        # 3. Trigger or self-heal dismiss
+        if updates:
+            msg_body = (
+                f"New firmware upgrades are available for your **BYD Solar Installation ({self.pid})**!\n\n"
+                + "\n\n".join(updates)
+            )
+            self.hass.async_create_task(
+                self.hass.services.async_call(
+                    "persistent_notification",
+                    "create",
+                    {
+                        "title": f"BYD Firmware Update Available ({self.pid})",
+                        "message": msg_body,
+                        "notification_id": notification_id,
+                    }
+                )
+            )
+            _LOGGER.info("Consolidated firmware update notification issued for %s", self.pid)
+        else:
+            # Self-heal: automatically dismiss notification if all are up-to-date
+            self.hass.async_create_task(
+                self.hass.services.async_call(
+                    "persistent_notification",
+                    "dismiss",
+                    {
+                        "notification_id": notification_id,
+                    }
+                )
+            )
