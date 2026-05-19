@@ -4,6 +4,11 @@ All notable changes to the BYD Energy Home Assistant custom component will be do
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.4-beta] - 2026-05-19
+
+### Fixed
+- **Resolved Namespace Shadowing Crash**: Fixed a critical Python namespace shadowing conflict where our new `time` platform module (`time.py`) collided with the built-in Python standard library `time` inside `__init__.py` and `api.py`. Solved by explicitly importing the standard library as `sys_time`, fully restoring all BYD sensors and metrics to active, functional states.
+
 ## [0.3.3-beta] - 2026-05-19
 
 ### Added

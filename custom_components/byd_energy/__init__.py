@@ -2,7 +2,7 @@
 import asyncio
 from datetime import timedelta
 import logging
-import time
+import time as sys_time
 from typing import Any, Dict
 
 from homeassistant.config_entries import ConfigEntry
@@ -138,7 +138,7 @@ class BydEnergyDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
 
     async def _async_update_data(self) -> Dict[str, Any]:
         """Fetch consolidated data from BYD cloud using multi-rate loops."""
-        now = time.time()
+        now = sys_time.time()
         
         # Initialize or copy data cache structure
         if self.data is not None:

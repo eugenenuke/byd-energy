@@ -4,7 +4,7 @@ import base64
 from base64 import b64encode
 import json
 import logging
-import time
+import time as sys_time
 import socket
 from typing import Any, Dict, List, Optional
 import aiohttp
@@ -56,7 +56,7 @@ class BydEnergyApiClient:
             exp = payload.get('exp')
             if exp is None:
                 return True
-            return time.time() >= (exp - 30)
+            return sys_time.time() >= (exp - 30)
         except Exception as ex:
             _LOGGER.warning("Failed to decode JWT expiration: %s", ex)
             return True
