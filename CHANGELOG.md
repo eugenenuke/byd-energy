@@ -4,6 +4,11 @@ All notable changes to the BYD Energy Home Assistant custom component will be do
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.2-beta] - 2026-05-19
+
+### Fixed
+- **Integer Settings Sliders**: Cast the `native_value` return type from `float` to `int` inside `number.py` for all 5 percentage and power configuration registers. This natively removes decimal dots (e.g., `4500` instead of `4500.0`) across all Lovelace sliders and cards with zero database or template history conflicts.
+
 ## [0.4.1-beta] - 2026-05-19
 
 ### Added

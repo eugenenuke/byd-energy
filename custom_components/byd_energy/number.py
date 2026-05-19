@@ -66,8 +66,8 @@ class BydEnergyNumber(CoordinatorEntity[BydEnergyDataUpdateCoordinator], NumberE
         self._attr_icon = icon
 
     @property
-    def native_value(self) -> Optional[float]:
-        """Return the current value."""
+    def native_value(self) -> Optional[int]:
+        """Return the current value as an integer."""
         if not self.coordinator.data:
             return None
 
@@ -79,7 +79,7 @@ class BydEnergyNumber(CoordinatorEntity[BydEnergyDataUpdateCoordinator], NumberE
 
         try:
             if val is not None:
-                return float(val)
+                return int(float(val))
         except (ValueError, TypeError):
             pass
         return None
