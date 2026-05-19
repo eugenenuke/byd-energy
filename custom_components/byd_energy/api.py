@@ -293,13 +293,18 @@ class BydEnergyApiClient:
             return str(resp["Data"]).strip()
         return None
 
-    async def get_latest_version(self, product_type: str, device_type: str) -> Optional[str]:
-        """Check BYD cloud repository for latest available firmware version of a device type (bms, pcs, f527)."""
-        params = {"ProductType": product_type, "deviceType": device_type, "appType": "IOS"}
-        resp = await self.request("get", "/Upgrade/app/GetLatestVersion", params=params)
+    async def get_all_latest_versions(self, product_type: str, pcs_model: str, bms_type: str) -> Dict[str, Any]:
+        """Fetch latest available firmware versions and file sizes for all components in a single POST request."""
+        payload = {
+            "productType": product_type,
+            "pcsModel": pcs_model,
+            "bmsType": bms_type,
+            "appArea": "",
+        }
+        resp = await self.request("post", "/Upgrade/GetAllLatestVersionByPidAndType", json=payload)
         if resp and resp.get("Success") and resp.get("Data"):
-            return str(resp["Data"]).strip()
-        return None
+            return resp["Data"]
+        return {}
 
     async def get_bms_type(self, pid: str) -> Optional[str]:
         """Fetch BMS hardware series code."""

@@ -129,6 +129,10 @@ SENSOR_DEFINITIONS = {
     "bms_current_version": ("BMS Firmware Version", None, None, None, "mdi:firmware"),
     "bms_latest_version": ("BMS Latest Available Firmware", None, None, None, "mdi:firmware"),
     "pcs_latest_version": ("Inverter Latest Available Firmware", None, None, None, "mdi:firmware"),
+    "dsp1_latest_version": ("Inverter DSP1 Latest Available Firmware", None, None, None, "mdi:firmware"),
+    "dsp2_latest_version": ("Inverter DSP2 Latest Available Firmware", None, None, None, "mdi:firmware"),
     "f527_current_version": ("WiFi Stick Firmware Version", None, None, None, "mdi:wifi-cog"),
     "f527_latest_version": ("WiFi Stick Latest Available Firmware", None, None, None, "mdi:wifi-cog"),
+    "wifi_module_current_version": ("WiFi Stick MCU1 Firmware Version", None, None, None, "mdi:wifi-cog"),
+    "wifi_module_latest_version": ("WiFi Stick MCU1 Latest Available Firmware", None, None, None, "mdi:wifi-cog"),
 }

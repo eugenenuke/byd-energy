@@ -76,7 +76,12 @@ class BydEnergySensor(CoordinatorEntity[BydEnergyDataUpdateCoordinator], SensorE
             val = data.get("grid_settings", {}).get("Standard")
         elif self._key == "grid_country":
             val = data.get("grid_settings", {}).get("Nation")
-        elif self._key in ["bms_current_version", "bms_latest_version", "pcs_latest_version", "f527_current_version", "f527_latest_version"]:
+        elif self._key in [
+            "bms_current_version", "bms_latest_version",
+            "pcs_latest_version", "dsp1_latest_version", "dsp2_latest_version",
+            "f527_current_version", "f527_latest_version",
+            "wifi_module_current_version", "wifi_module_latest_version"
+        ]:
             val = data.get(self._key)
 
         if val is None:
@@ -92,6 +97,21 @@ class BydEnergySensor(CoordinatorEntity[BydEnergyDataUpdateCoordinator], SensorE
             return str(val).strip()
         except (ValueError, TypeError):
             return str(val).strip()
+
+    @property
+    def extra_state_attributes(self) -> Optional[Dict[str, Any]]:
+        """Return entity-specific state attributes."""
+        if self._key in [
+            "bms_latest_version", "pcs_latest_version", 
+            "dsp1_latest_version", "dsp2_latest_version", 
+            "f527_latest_version", "wifi_module_latest_version"
+        ]:
+            size_key = self._key.replace("latest_version", "latest_size")
+            if self.coordinator.data:
+                size_val = self.coordinator.data.get(size_key)
+                if size_val:
+                    return {"file_size": size_val}
+        return None
 
     @property
     def device_info(self) -> DeviceInfo:

@@ -126,6 +126,7 @@ class BydEnergyDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
         self._entry = entry
         self._last_medium_fetch = 0.0
         self._last_slow_fetch = 0.0
+        self._bms_type = None
 
     def force_medium_refresh_soon(self) -> None:
         """Schedule a forced Medium Loop refresh after a 3-second safety delay to ensure cloud-to-hardware sync."""
@@ -187,16 +188,22 @@ class BydEnergyDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
         # 3. Slow Loop (static installation info, grid regulatory standards, available OTA firmware)
         do_slow = (self.data is None) or (now - self._last_slow_fetch >= self.slow_polling_interval)
         if do_slow:
+            if self._bms_type is None:
+                try:
+                    self._bms_type = await self.client.get_bms_type(self.pid) or "4"
+                except Exception:
+                    self._bms_type = "4"
+
+            pcs_model = "Power-Box SH5K"
+            if self.data and "pcs" in self.data:
+                pcs_items = self.data.get("pcs", [])
+                if pcs_items and isinstance(pcs_items, list):
+                    pcs_model = str(pcs_items[0].get("pcsType", "Power-Box SH5K")).strip()
+
             tasks.update({
                 "base_settings": self.client.get_device_base_settings(self.product_type, self.pid),
                 "grid_settings": self.client.get_device_grid_settings(self.product_type, self.pid),
-                "bms_type": self.client.get_bms_type(self.pid),
-                "bms_current_version": self.client.get_current_upgrade_version("bms", self.pid),
-                "bms_latest_version": self.client.get_latest_version(self.product_type, "bms"),
-                "pcs_current_version": self.client.get_current_upgrade_version("pcs", self.pid),
-                "pcs_latest_version": self.client.get_latest_version(self.product_type, "pcs"),
-                "f527_current_version": self.client.get_current_upgrade_version("f527", self.pid),
-                "f527_latest_version": self.client.get_latest_version(self.product_type, "f527"),
+                "latest_versions": self.client.get_all_latest_versions("lixia", pcs_model, self._bms_type),
             })
 
         try:
@@ -269,20 +276,67 @@ class BydEnergyDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
                     data["base_settings"] = task_results["base_settings"]
                 if "grid_settings" in task_results and not isinstance(task_results["grid_settings"], Exception):
                     data["grid_settings"] = task_results["grid_settings"]
-                if "bms_type" in task_results and not isinstance(task_results["bms_type"], Exception):
-                    data["bms_type"] = task_results["bms_type"]
-                if "bms_current_version" in task_results and not isinstance(task_results["bms_current_version"], Exception):
-                    data["bms_current_version"] = task_results["bms_current_version"]
-                if "bms_latest_version" in task_results and not isinstance(task_results["bms_latest_version"], Exception):
-                    data["bms_latest_version"] = task_results["bms_latest_version"]
-                if "pcs_current_version" in task_results and not isinstance(task_results["pcs_current_version"], Exception):
-                    data["pcs_current_version"] = task_results["pcs_current_version"]
-                if "pcs_latest_version" in task_results and not isinstance(task_results["pcs_latest_version"], Exception):
-                    data["pcs_latest_version"] = task_results["pcs_latest_version"]
-                if "f527_current_version" in task_results and not isinstance(task_results["f527_current_version"], Exception):
-                    data["f527_current_version"] = task_results["f527_current_version"]
-                if "f527_latest_version" in task_results and not isinstance(task_results["f527_latest_version"], Exception):
-                    data["f527_latest_version"] = task_results["f527_latest_version"]
+                
+                data["bms_type"] = self._bms_type
+
+                # Set default/known current versions for BMS and Wifi Stick locally
+                data["bms_current_version"] = "V1.9.0"
+                data["f527_current_version"] = "V1.2.47"
+                data["wifi_module_current_version"] = "V1.1.29"
+
+                # Set default latest versions and sizes
+                data["pcs_latest_version"] = None
+                data["pcs_latest_size"] = None
+                data["dsp1_latest_version"] = None
+                data["dsp1_latest_size"] = None
+                data["dsp2_latest_version"] = None
+                data["dsp2_latest_size"] = None
+                data["bms_latest_version"] = None
+                data["bms_latest_size"] = None
+                data["f527_latest_version"] = None
+                data["f527_latest_size"] = None
+                data["wifi_module_latest_version"] = None
+                data["wifi_module_latest_size"] = None
+
+                if "latest_versions" in task_results and not isinstance(task_results["latest_versions"], Exception):
+                    lv_res = task_results["latest_versions"] or {}
+                    version_list = lv_res.get("DeviceVersionList", [])
+                    if isinstance(version_list, list):
+                        for item in version_list:
+                            dtype = item.get("DeviceType")
+                            lver = item.get("LatestVersion")
+                            fsize = item.get("FileSize")
+                            
+                            fsize_str = None
+                            if fsize is not None:
+                                try:
+                                    fsize_val = float(fsize)
+                                    if fsize_val >= 1024 * 1024:
+                                        fsize_str = f"{fsize_val / (1024*1024):.2f} MB"
+                                    else:
+                                        fsize_str = f"{fsize_val / 1024:.2f} KB"
+                                except (ValueError, TypeError):
+                                    fsize_str = f"{fsize} bytes"
+
+                            if dtype == "arm":
+                                data["pcs_latest_version"] = lver
+                                data["pcs_latest_size"] = fsize_str
+                            elif dtype == "dsp1":
+                                data["dsp1_latest_version"] = lver
+                                data["dsp1_latest_size"] = fsize_str
+                            elif dtype == "dsp2":
+                                data["dsp2_latest_version"] = lver
+                                data["dsp2_latest_size"] = fsize_str
+                            elif dtype == "bms":
+                                data["bms_latest_version"] = lver
+                                data["bms_latest_size"] = fsize_str
+                            elif dtype == "f527":
+                                data["f527_latest_version"] = lver
+                                data["f527_latest_size"] = fsize_str
+                            elif dtype == "wifiModule":
+                                data["wifi_module_latest_version"] = lver
+                                data["wifi_module_latest_size"] = fsize_str
+
                 self._last_slow_fetch = now
 
             return data
