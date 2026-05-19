@@ -117,6 +117,8 @@ SENSOR_DEFINITIONS = {
     "elecDailySale": ("Daily Grid Export", SensorDeviceClass.ENERGY, SensorStateClass.TOTAL_INCREASING, UnitOfEnergy.KILO_WATT_HOUR, "mdi:transmission-tower-export"),
     "bmsDailyCharge": ("Daily Battery Charged Energy", SensorDeviceClass.ENERGY, SensorStateClass.TOTAL_INCREASING, UnitOfEnergy.KILO_WATT_HOUR, "mdi:battery-arrow-up"),
     "bmsDailyDisCharge": ("Daily Battery Discharged Energy", SensorDeviceClass.ENERGY, SensorStateClass.TOTAL_INCREASING, UnitOfEnergy.KILO_WATT_HOUR, "mdi:battery-arrow-down"),
+    "loadDailyConsume": ("Daily Household Consumption (Cloud)", SensorDeviceClass.ENERGY, SensorStateClass.TOTAL_INCREASING, UnitOfEnergy.KILO_WATT_HOUR, "mdi:home-lightning-bolt"),
+    "pvDailyProduct": ("Daily PV Generation (Cloud)", SensorDeviceClass.ENERGY, SensorStateClass.TOTAL_INCREASING, UnitOfEnergy.KILO_WATT_HOUR, "mdi:solar-power"),
     "elecTotalBuy": ("Lifetime Grid Import", SensorDeviceClass.ENERGY, SensorStateClass.TOTAL_INCREASING, UnitOfEnergy.KILO_WATT_HOUR, "mdi:transmission-tower-import"),
     "elecTotalSale": ("Lifetime Grid Export", SensorDeviceClass.ENERGY, SensorStateClass.TOTAL_INCREASING, UnitOfEnergy.KILO_WATT_HOUR, "mdi:transmission-tower-export"),
     "bmsTotalCharge": ("Lifetime Battery Charged Energy", SensorDeviceClass.ENERGY, SensorStateClass.TOTAL_INCREASING, UnitOfEnergy.KILO_WATT_HOUR, "mdi:battery-arrow-up"),

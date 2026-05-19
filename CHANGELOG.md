@@ -4,6 +4,18 @@ All notable changes to the BYD Energy Home Assistant custom component will be do
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1-beta] - 2026-05-19
+
+### Added
+- **Defensive Cloud Energy Sensors**: Registered `loadDailyConsume` as `Daily Household Consumption (Cloud)` and `pvDailyProduct` as `Daily PV Generation (Cloud)` inside the custom component backend to match the BYD Mobile App's daily energy numbers by the digit.
+- **Non-Breaking Metric Coexistence**: Retained the raw real-time `dec` sensor completely untouched as `Daily Household Consumption` to guarantee 100% backward-compatibility for existing custom templates and automations.
+
+### Lovelace Upgrades (Local scratch dashboard)
+- **High-Fidelity Real-Time Split Power Chart**: Integrated custom `apexcharts-card` in Tab 1 showing positive real-time active kW curves (PV generation, battery discharge, grid import) above the `0` line and negative active kW curves (household load, battery charging, grid export) below the `0` line, mimicking the mobile app layout.
+- **Day-Switching Historical Energy Picker**: Added native `energy-date-selection` and `energy-usage-graph` cards to Tab 1 for helper-free daily grid history navigation.
+- **SolCast Forecasting Overlay**: Appended the native `energy-solar-graph` card to Tab 3 to overlay actual PV production history with the predicted SolCast curve.
+- **Seamless Header Subtitling**: Snugged card-mod styled Markdown subtitles (`*Feed-in Priority*` and `*Backup*`) directly under native card titles in Tab 4 and Tab 5, removing heavy separators.
+
 ## [0.4.0-beta] - 2026-05-19
 
 ### Added
