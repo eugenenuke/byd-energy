@@ -80,6 +80,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Register options update listener
     entry.async_on_unload(entry.add_update_listener(async_update_options))
 
+    # Register custom service to force a full refresh of all loops
+    async def handle_force_refresh(call) -> None:
+        coordinator = hass.data[DOMAIN][entry.entry_id]
+        await coordinator.async_force_full_refresh()
+
+    hass.services.async_register(DOMAIN, "force_refresh", handle_force_refresh)
+
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     return True
@@ -94,6 +101,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload BYD Energy config entry."""
     if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
         hass.data[DOMAIN].pop(entry.entry_id)
+        # Unregister the custom service when integration is unloaded
+        hass.services.async_remove(DOMAIN, "force_refresh")
     return unload_ok
 
 
@@ -136,6 +145,13 @@ class BydEnergyDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
             await self.async_request_refresh()
 
         self.hass.async_create_task(_deferred_refresh())
+
+    async def async_force_full_refresh(self) -> None:
+        """Force a full refresh of all three loops (Fast, Medium, and Slow) instantly."""
+        _LOGGER.debug("Forcing instant full refresh of all three BYD polling loops")
+        self._last_medium_fetch = 0.0  # Bypass Medium Loop time gate
+        self._last_slow_fetch = 0.0    # Bypass Slow Loop time gate
+        await self.async_refresh()     # Trigger immediate data refresh
 
     async def _async_update_data(self) -> Dict[str, Any]:
         """Fetch consolidated data from BYD cloud using multi-rate loops."""
