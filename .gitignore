@@ -11,3 +11,7 @@
 # But ignore cache files under custom_components
 **/__pycache__/
 **/*.pyc
+
+# Private internal developer directories
+internal/
+documentation/internal/
