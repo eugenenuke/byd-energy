@@ -148,10 +148,11 @@ class BydEnergyDataUpdateCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
 
     async def async_force_full_refresh(self) -> None:
         """Force a full refresh of all three loops (Fast, Medium, and Slow) instantly."""
-        _LOGGER.debug("Forcing instant full refresh of all three BYD polling loops")
+        _LOGGER.info("Forcing instant full refresh of all three BYD polling loops")
         self._last_medium_fetch = 0.0  # Bypass Medium Loop time gate
         self._last_slow_fetch = 0.0    # Bypass Slow Loop time gate
         await self.async_refresh()     # Trigger immediate data refresh
+        _LOGGER.info("Forced full refresh completed successfully")
 
     async def _async_update_data(self) -> Dict[str, Any]:
         """Fetch consolidated data from BYD cloud using multi-rate loops."""
