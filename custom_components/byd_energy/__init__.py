@@ -6,10 +6,10 @@ import re
 import time as sys_time
 from typing import Any, Dict
 
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.config_entries import ConfigEntry, ConfigEntryState
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME, Platform
-from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
 from homeassistant.helpers import aiohttp_client
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
@@ -81,14 +81,48 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Register options update listener
     entry.async_on_unload(entry.add_update_listener(async_update_options))
 
-    # Register custom service to force a full refresh of all loops
-    async def handle_force_refresh(call) -> None:
-        coordinator = hass.data[DOMAIN][entry.entry_id]
-        await coordinator.async_force_full_refresh()
+    try:
+        await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    except BaseException:
+        # Platforms need the coordinator during setup, but failed entries must
+        # not remain eligible for subsequent service calls.
+        hass.data[DOMAIN].pop(entry.entry_id, None)
+        raise
 
-    hass.services.async_register(DOMAIN, "force_refresh", handle_force_refresh)
+    if not hass.services.has_service(DOMAIN, "force_refresh"):
 
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+        async def handle_force_refresh(call: ServiceCall) -> None:
+            failed_entries: list[str] = []
+            # Resolve entries for each invocation instead of capturing whichever
+            # entry happened to register the domain service last.
+            for entry_id, loaded_coordinator in list(hass.data[DOMAIN].items()):
+                loaded_entry = hass.config_entries.async_get_entry(entry_id)
+                if (
+                    loaded_entry is None
+                    or loaded_entry.state
+                    not in (
+                        ConfigEntryState.LOADED,
+                        ConfigEntryState.FAILED_UNLOAD,
+                    )
+                    or hass.data[DOMAIN].get(entry_id) is not loaded_coordinator
+                ):
+                    continue
+                try:
+                    await loaded_coordinator.async_force_full_refresh()
+                except Exception:
+                    _LOGGER.exception("Force refresh failed for entry %s", entry_id)
+                    failed_entries.append(entry_id)
+                else:
+                    # DataUpdateCoordinator records UpdateFailed without raising
+                    # it to callers of async_refresh().
+                    if not loaded_coordinator.last_update_success:
+                        failed_entries.append(entry_id)
+            if failed_entries:
+                raise HomeAssistantError(
+                    "BYD Energy refresh failed for entries: " + ", ".join(failed_entries)
+                )
+
+        hass.services.async_register(DOMAIN, "force_refresh", handle_force_refresh)
 
     return True
 
@@ -102,8 +136,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload BYD Energy config entry."""
     if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
         hass.data[DOMAIN].pop(entry.entry_id)
-        # Unregister the custom service when integration is unloaded
-        hass.services.async_remove(DOMAIN, "force_refresh")
+        if not hass.data[DOMAIN]:
+            hass.services.async_remove(DOMAIN, "force_refresh")
     return unload_ok
 
 

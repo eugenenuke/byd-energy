@@ -1,0 +1,6 @@
+homeassistant==2026.10.2
+pytest-homeassistant-custom-component==0.13.373
+pytest==9.0.3
+pytest-asyncio==1.4.0
+pytest-socket==0.8.1
+pycryptodome==4.2.0
