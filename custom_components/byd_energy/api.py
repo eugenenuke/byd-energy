@@ -40,6 +40,7 @@ class BydEnergyApiClient:
         self.access_token = access_token
         self.refresh_token = refresh_token
         self._auth_lock = asyncio.Lock()
+        self._refresh_lock = asyncio.Lock()
 
     def _is_token_expired(self, token: Optional[str]) -> bool:
         """Check if JWT access token is expired or near expiration (e.g. within 30 seconds)."""
@@ -129,8 +130,19 @@ class BydEnergyApiClient:
             except (aiohttp.ClientError, socket.gaierror, asyncio.TimeoutError) as ex:
                 raise BydEnergyApiClientError("Network error during login") from ex
 
-    async def _refresh_tokens(self) -> None:
-        """Refresh expired access token."""
+    async def _refresh_tokens(self, rejected_token: Optional[str] = None) -> None:
+        """Share successful renewal across requests using the same old token."""
+        async with self._refresh_lock:
+            if (
+                self.refresh_token
+                and self.access_token != rejected_token
+                and not self._is_token_expired(self.access_token)
+            ):
+                return
+            await self._refresh_session()
+
+    async def _refresh_session(self) -> None:
+        """Refresh the session, falling back to a full login when needed."""
         if not self.access_token or not self.refresh_token:
             await self.login()
             return
@@ -172,7 +184,6 @@ class BydEnergyApiClient:
         url = f"{BASE_URL}{path}"
         headers = {
             "accept": "application/json, text/plain, */*",
-            "authorization": f"Bearer {self.access_token}",
         }
         if json is not None:
             headers["content-type"] = "application/json"
@@ -180,12 +191,13 @@ class BydEnergyApiClient:
         attempts = 0
         while attempts < 2:
             attempts += 1
+            request_token = self.access_token
+            headers["authorization"] = f"Bearer {request_token}"
             try:
                 async with self._session.request(method, url, json=json, params=params, headers=headers, timeout=15) as resp:
                     if resp.status == 401:
                         _LOGGER.debug("HTTP 401 received, triggering token self-healing")
-                        await self._refresh_tokens()
-                        headers["authorization"] = f"Bearer {self.access_token}"
+                        await self._refresh_tokens(rejected_token=request_token)
                         continue
 
                     if resp.status != 200:
@@ -197,8 +209,7 @@ class BydEnergyApiClient:
                         if data.get("Code") == 401 or (data.get("Success") is False and "logged in" in str(data.get("Message", "")).lower()):
                             if attempts < 2:
                                 _LOGGER.debug("App Code 401 received, triggering token self-healing")
-                                await self._refresh_tokens()
-                                headers["authorization"] = f"Bearer {self.access_token}"
+                                await self._refresh_tokens(rejected_token=request_token)
                                 continue
                             raise BydEnergyAuthError("Session expired and refresh failed")
 
